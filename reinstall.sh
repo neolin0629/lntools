@@ -14,7 +14,7 @@ unset __conda_setup
 # <<< conda initialize <<<
 
 # 本环境使用source activate，conda activate不可用
-source activate /software/anaconda3/envs/dev
+source activate /software/anaconda3/envs/base
 
 # 定义临时whl路径
 DIR=~/temp_install
