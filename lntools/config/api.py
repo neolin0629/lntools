@@ -8,7 +8,7 @@ from dataclasses import dataclass, fields, field
 from pathlib import Path
 from typing import Optional, Dict
 
-from pkg_resources import resource_filename, resource_exists
+import importlib.resources
 from yaml import safe_dump, dump, safe_load, load, Loader
 
 from lntools.utils import handle_path, Logger, PathLike
@@ -29,14 +29,13 @@ def read_pkg_ini(config_name: str, package: str = 'lntools', encoding='utf8'):
     Returns:
         ConfigParser: A parser object loaded with the ini file content.
     """
-    config_path = resource_filename(package, config_name)
-
-    # Check if the resource exists before attempting to read it
-    if resource_exists(package, config_name):
-        cfg = ConfigParser(interpolation=ExtendedInterpolation())
-        cfg.read(config_path, encoding=encoding)
-    else:
-        raise FileNotFoundError(f"The specified ini file {config_name} does not exist in the package {package}.")
+    ref = importlib.resources.files(package) / config_name
+    with importlib.resources.as_file(ref) as config_path:
+        if config_path.exists():
+            cfg = ConfigParser(interpolation=ExtendedInterpolation())
+            cfg.read(str(config_path), encoding=encoding)
+        else:
+            raise FileNotFoundError(f"The specified ini file {config_name} does not exist in the package {package}.")
     return cfg
 
 
@@ -62,12 +61,13 @@ def read_pkg_yaml(config_name, package='lntools', encoding='utf8', safe=True):
     """
     Read a YAML file from a package and return its contents.
     """
-    resource_path = resource_filename(package, config_name)
-    if resource_exists(package, config_name):
-        with open(resource_path, 'r', encoding=encoding) as file:
-            return safe_load(file) if safe else load(file, Loader=Loader)
-    else:
-        raise FileNotFoundError(f"Resource {config_name} not found in package {package}.")
+    ref = importlib.resources.files(package) / config_name
+    with importlib.resources.as_file(ref) as resource_path:
+        if resource_path.exists():
+            with open(resource_path, 'r', encoding=encoding) as file:
+                return safe_load(file) if safe else load(file, Loader=Loader)
+        else:
+            raise FileNotFoundError(f"Resource {config_name} not found in package {package}.")
 
 
 def read_yaml(path: PathLike, encoding='utf8', safe=True):
