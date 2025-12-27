@@ -51,7 +51,7 @@ pip wheel --no-deps --wheel-dir="$DIR" "$script_dir"
 
 pip uninstall lntools -y
 
-pip install "$DIR/lntools-0.1.0-py3-none-any.whl"
+pip install "$DIR"/lntools-*.whl
 
 # Loop through each directory and check if it exists
 for dir in "${dirs[@]}"; do

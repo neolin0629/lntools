@@ -1,5 +1,5 @@
 @echo off
-call activate base
+call activate dev
 
 set WHEEL_DIR=E:/project/wheels
 set PACKAGE_NAME=lntools
