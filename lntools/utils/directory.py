@@ -192,13 +192,17 @@ class Directory:
         """Get matching files for date range."""
         from lntools.utils.human import lists
         from lntools.timeutils import get as getn, dt2str
-        from qxanalyze.api.tcalendar import get_Tcalendar
 
-        date_seq = (
-            get_Tcalendar().get(sdt, edt, dtype="datetime")
-            if self.use_tcal
-            else getn(sdt, edt)
-        )
+        # 尝试使用交易日历，如果不可用则降级到普通日期
+        if self.use_tcal:
+            try:
+                from qxanalyze.api.tcalendar import get_Tcalendar
+                date_seq = get_Tcalendar().get(sdt, edt, dtype="datetime")
+            except ImportError:
+                log.warning("交易日历包不可用，使用普通日期范围")
+                date_seq = getn(sdt, edt)
+        else:
+            date_seq = getn(sdt, edt)
 
         dates = [dt2str(t, self.date_format) for t in date_seq]
         files = [self.file_pattern.format(date=d) for d in dates]
