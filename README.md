@@ -89,15 +89,15 @@ from lntools import now, adjust, diff, get, day_of_week
 current = now()
 
 # 日期调整（加减天数）
-tomorrow = adjust("2024-01-01", 1)      # 下一天
-yesterday = adjust("2024-01-01", -1)    # 前一天
+tomorrow = adjust("2024-01-01", 1)      # 2024-01-02（下一天）
+yesterday = adjust("2024-01-01", -1)    # 2023-12-31（前一天）
 today = adjust("today")                  # 今天
 
-# 计算日期差
-days = diff("2024-01-01", "2024-02-01")  # 返回 31
+# 计算日期差（天数）
+days = diff("2024-01-01", "2024-02-01")  # 返回 31（两个日期之间相差31天）
 
-# 生成日期序列
-dates = get("2024-01-01", "2024-01-31")  # 返回日期列表
+# 生成日期序列（包含起止日期）
+dates = get("2024-01-01", "2024-01-31")  # 返回31个日期的列表（1月1日到1月31日）
 
 # 获取星期几（1=周一，7=周日）
 weekday = day_of_week("2024-01-01")
@@ -521,7 +521,7 @@ from lntools import ranges, get
 
 dates = get("2024-01-01", "2024-01-31")
 print(ranges(dates))
-# '2024/01/01 ~ 2024/01/31 (31 days, 1M0D)'
+# 输出: '2024/01/01 ~ 2024/01/31 (31 days, 1M0D)'
 ```
 
 #### 日期时间格式化
