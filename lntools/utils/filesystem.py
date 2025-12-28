@@ -329,9 +329,14 @@ def _get_formatted_files(
     """
     from lntools.timeutils import dt2str, get
 
+    # 尝试使用交易日历，如果不可用则降级到普通日期
     if use_tcal:
-        from qxanalyze.api.tcalendar import TCalendar
-        dates = TCalendar(["tdate"]).get(sdt, edt, dtype="datetime")
+        try:
+            from qxanalyze.api.tcalendar import TCalendar
+            dates = TCalendar(["tdate"]).get(sdt, edt, dtype="datetime")
+        except ImportError:
+            log.warning("交易日历包不可用，使用普通日期范围")
+            dates = get(sdt, edt)
     else:
         dates = get(sdt, edt)
 
@@ -424,7 +429,7 @@ def read_directory(
         results = list(executor.map(_read_file, files))
 
     # Remove empty DataFrames
-    results = [df for df in results if not df.shape[0] > 0]
+    results = [df for df in results if df.shape[0] > 0]
 
     if not results:
         log.warning("No data read from any files")
