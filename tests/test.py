@@ -36,11 +36,11 @@ def test_mail():
         .newemail(to="125179847@qq.com", subject="test mail python")
         .add_title("This is lntools test mail")
         .add_content("from Neo lntools")
-        .add_images(["/home/lin/download/11d30.png", "/home/lin/download/11d31.png"])
+        .add_images(["D:\\1.png", "D:\\1767941843347_d.png"])
         .add_href(href="https://git.qxtech.cc/johnny/lntools", title="lntools")
         .add_attachments([
-            "/home/lin/data/wind/PITFinancialFactor_数据字典.pdf",
-            "/home/lin/data/wind/ConsensusExpectationFactor_数据字典.pdf"])
+            "D:\\download\\12524412.xlsx",
+            "E:\\document\\getrich系统设计v1.1.md"])
         .add_table(df)
         .sendmail()
     )

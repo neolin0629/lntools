@@ -1,5 +1,5 @@
 @echo off
-call activate dev
+call conda activate dev
 
 set WHEEL_DIR=E:/project/wheels
 set PACKAGE_NAME=lntools
@@ -11,7 +11,7 @@ pip wheel --no-deps --wheel-dir="%WHEEL_DIR%" ./
 pip show %PACKAGE_NAME% >nul 2>&1 && pip uninstall %PACKAGE_NAME% -y
 
 for /f "delims=" %%i in ('dir /b /od "%WHEEL_DIR%\%PACKAGE_NAME%-*.whl"') do set LATEST_WHL=%%i
-pip install "%WHEEL_DIR%\%LATEST_WHL%"
+pip install -e "%WHEEL_DIR%\%LATEST_WHL%"
 
 echo Cleaning up build directories...
 if exist build rmdir /s /q build

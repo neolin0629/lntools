@@ -10,17 +10,19 @@ This module provides a collection of functions for:
 @time 2024/6/8
 """
 from datetime import datetime, timedelta
-from typing import List, Union, Optional, Literal
+import time
+import functools
+from typing import List, Union, Optional, Literal, Any, Callable
 
 import pandas as pd
 import polars as pl
-from pandas.api.types import is_datetime64_any_dtype as is_date_pd  # pylint: disable=unused-import # noqa: F401
 
-from lntools.utils.decorator import timer  # pylint: disable=unused-import # noqa: F401
 from lntools.utils.typing import DatetimeLike
 
 # Constants
 DATE_STR_PATTERN: str = r'\d{4}(0[1-9]|1[0-2])(0[1-9]|[1-2][0-9]|3[0-1])'
+
+FormatMethod = Literal["standard", "compact", "wide", "time", "datetime"]
 
 SHORTCUTS: dict[str, str] = {
     "standard": '%Y/%m/%d',
@@ -30,7 +32,36 @@ SHORTCUTS: dict[str, str] = {
     "datetime": '%Y/%m/%d %H:%M:%S',
 }
 
-FormatMethod = Literal["standard", "compact", "wide", "time", "datetime"]
+
+def timer(
+    msg: str,
+    reporter: Callable[[str], None] = print,
+    threshold: float = 3.0,
+    process_time: bool = False,
+) -> Callable:
+    """
+    性能分析装饰器。
+
+    优化：
+    1. 使用 functools.wraps 保持原函数元数据。
+    2. 允许 threshold 为 float。
+    """
+    timer_func = time.process_time if process_time else time.perf_counter
+
+    def decorator(func: Callable) -> Callable:
+        @functools.wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            start_time = timer_func()
+            result = func(*args, **kwargs)
+            elapsed = timer_func() - start_time
+
+            if elapsed >= threshold:
+                # 这里假设 sec2str 已内置或使用简单的格式化
+                time_str = f"{elapsed:.2f}s" if elapsed < 60 else f"{elapsed/60:.2f}min"
+                reporter(f"[{msg}] 耗时: {time_str}")
+            return result
+        return wrapper
+    return decorator
 
 
 def now() -> datetime:

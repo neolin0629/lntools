@@ -293,72 +293,230 @@ data = d.read(
 
 ### 4.3 📧 邮件发送 (mail)
 
-支持 HTML、图片、附件和 DataFrame 表格的链式邮件工具。
+支持 HTML、图片、附件和 DataFrame 表格的企业级链式邮件工具，内置 TLS/SSL 加密、自动重试、详细日志和完整错误处理。
 
-#### MailPlus 类的链式调用
+#### 配置要求
+
+在 `~/.config/lntools/lntools.yaml` 中配置邮件服务器：
+
+```yaml
+mail:
+  server: smtp.example.com      # SMTP 服务器地址
+  port: 25                       # 端口 (可选，TLS 默认 465，非 TLS 默认 25)
+  username: your_email@example.com
+  password: your_password
+  use_tls: false                 # 是否启用 TLS/SSL 加密 (可选，默认 false)
+```
+
+**TLS/SSL 支持：**
+- `use_tls: true` - 使用 SMTP_SSL（端口 465），适用于 Gmail、QQ 邮箱等
+- `use_tls: false` - 使用标准 SMTP（端口 25），适用于企业内网邮件服务器
+
+#### 基础用法：链式调用
 
 ```python
 from lntools import MailPlus
 import pandas as pd
 
-# 创建邮件对象
+# 1. 创建邮件对象（自动读取全局配置）
 mail = MailPlus()
 
-# 链式调用发送邮件
+# 2. 链式调用发送邮件
 success = (
     mail.newemail(
-        to="recipient@example.com",
-        subject="数据报告",
-        cc=["cc1@example.com", "cc2@example.com"]
+        to="recipient@example.com",           # 收件人（支持列表）
+        subject="数据报告",                    # 邮件主题
+        cc=["cc1@example.com", "cc2@example.com"]  # 抄送（可选）
     )
-    .add_title("每日数据报告")
-    .add_content("以下是今日的数据分析结果：")
-    .add_table(df)                           # 添加 DataFrame 表格
-    .add_images(["chart1.png", "chart2.png"])  # 添加图片
-    .add_href("https://example.com", "查看详情")  # 添加链接
-    .add_attachments(["report.pdf", "data.xlsx"])  # 添加附件
-    .sendmail()
+    .add_title("每日数据报告")                # 添加 H1 标题
+    .add_content("以下是今日的数据分析结果：")  # 添加段落文本
+    .add_table(df)                           # 添加 DataFrame 表格（pandas 或 polars）
+    .add_images(["chart1.png", "chart2.png"])  # 添加内联图片
+    .add_href("https://example.com", "查看详情")  # 添加超链接
+    .add_attachments(["report.pdf", "data.xlsx"])  # 添加附件（任意文件类型）
+    .sendmail(retries=3, retry_delay=2.0)    # 发送邮件（支持自动重试）
 )
 
 if success:
     print("邮件发送成功")
+else:
+    print("邮件发送失败，请检查日志")
 ```
 
-#### 更换邮件服务器
+#### 高级功能示例
+
+##### 1. 自定义邮件配置（不使用全局配置）
 
 ```python
-# 更换邮件服务器配置
-server_config = {
-    "server": "smtp.163.com",
-    "port": 25,
-    "username": "your_email@163.com",
-    "password": "your_password"
+# 临时使用不同的邮件服务器
+custom_config = {
+    "server": "smtp.gmail.com",
+    "port": 465,
+    "username": "your_gmail@gmail.com",
+    "password": "your_app_password",
+    "use_tls": "true"  # Gmail 需要 TLS
 }
 
-mail.set_server(server_config)
+mail = MailPlus(cfg=custom_config)
+```
+
+##### 2. 更换邮件服务器
+
+```python
+# 在运行时切换到不同的邮件服务器
+new_server = {
+    "server": "smtp.163.com",
+    "port": 25,
+    "username": "work_email@163.com",
+    "password": "work_password",
+    "use_tls": "false"
+}
+
+mail.set_server(new_server)
+```
+
+##### 3. 发送带 Polars DataFrame 的邮件
+
+```python
+import polars as pl
+
+# Polars DataFrame 自动转换为 HTML 表格
+df_pl = pl.DataFrame({
+    "日期": ["2024-01-01", "2024-01-02"],
+    "收益率": [0.025, -0.013],
+    "夏普比率": [1.85, 1.72]
+})
+
+mail.newemail("analyst@example.com", "Polars 数据报告")
+mail.add_table(df_pl).sendmail()
+```
+
+##### 4. 使用 Path 对象处理文件
+
+```python
+from pathlib import Path
+
+# 支持 Path 对象和字符串路径
+output_dir = Path("./output")
+images = [output_dir / "fig1.png", output_dir / "fig2.png"]
+attachments = [output_dir / "report.xlsx"]
+
+mail.newemail("team@example.com", "项目报告")
+mail.add_images(images).add_attachments(attachments).sendmail()
+```
+
+##### 5. 自定义重试策略
+
+```python
+# 增加重试次数和延迟，适用于网络不稳定环境
+success = (
+    mail.newemail("client@example.com", "重要通知")
+    .add_content("这是一封重要的邮件，确保送达")
+    .sendmail(retries=5, retry_delay=5.0)  # 最多重试 5 次，每次延迟 5 秒
+)
+```
+
+##### 6. 错误处理最佳实践
+
+```python
+from lntools.mail.mailplus import MailPlusError
+
+try:
+    mail = MailPlus()
+    success = (
+        mail.newemail("recipient@example.com", "测试邮件")
+        .add_content("测试内容")
+        .add_attachments(["report.pdf"])  # 如果文件不存在，会抛出 FileNotFoundError
+        .sendmail()
+    )
+    
+    if not success:
+        # 发送失败（认证错误、连接超时等）
+        print("邮件发送失败，请检查日志获取详细错误信息")
+
+except FileNotFoundError as e:
+    print(f"附件文件未找到: {e}")
+except MailPlusError as e:
+    print(f"邮件配置错误: {e}")
+except Exception as e:
+    print(f"未知错误: {e}")
 ```
 
 ---
 
 ### 4.4 🤖 消息通知 (bot)
 
-飞书 Webhook 通知集成。
+飞书 Webhook 通知集成，支持文本、富文本（Post）和交互式卡片消息。
+
+#### FeishuNotifier 类
 
 ```python
-from lntools import notify_feishu
+from lntools.bot.notify import FeishuNotifier
 
-# 发送飞书通知
+# 创建通知器实例
 webhook_url = "https://open.feishu.cn/open-apis/bot/v2/hook/xxxxx"
-message = "任务执行完成！"
+notifier = FeishuNotifier(
+    webhook=webhook_url,
+    timeout=10,      # 请求超时时间（秒）
+    retries=3        # 失败重试次数
+)
 
-notify_feishu(webhook_url, message)
+# 1. 发送纯文本消息
+notifier.send_text("任务执行完成！")
+
+# 2. 发送交互式卡片
+notifier.send_card(
+    title="系统监控告警",
+    content="**级别**: P0\n**详情**: 数据库连接池占满\n<at id=all></at>",
+    theme="red"  # 可选: blue, green, yellow, orange, red, purple 等
+)
+
+# 3. 发送富文本（Post）消息
+post_content = {
+    "zh_cn": {
+        "title": "项目更新通知",
+        "content": [
+            [
+                {"tag": "text", "text": "项目进度："},
+                {"tag": "a", "text": "查看详情", "href": "https://example.com"},
+            ],
+            [{"tag": "text", "text": "当前状态："}],
+            [{"tag": "text", "text": "✅ 任务1已完成\n⏳ 任务2进行中"}],
+        ],
+    }
+}
+notifier.send("post", post_content)
 ```
+
+#### 卡片主题颜色
+
+可用的主题颜色包括：
+- `blue` - 蓝色（默认）
+- `wathet` - 浅蓝
+- `turquoise` - 青绿
+- `green` - 绿色
+- `yellow` - 黄色
+- `orange` - 橙色
+- `red` - 红色
+- `carmine` - 洋红
+- `violet` - 紫罗兰
+- `purple` - 紫色
+- `indigo` - 靛蓝
+- `grey` - 灰色
 
 ---
 
 ### 4.5 ⚙️ 配置管理 (config)
 
-YAML 和 INI 配置文件的读写管理。
+YAML 和 INI 配置文件的读写管理，支持类型安全和错误处理。
+
+#### 配置文件位置
+
+lntools 的全局配置文件位于：
+- **Linux/macOS**: `~/.config/lntools/lntools.yaml`
+- **Windows**: `C:\Users\<username>\.config\lntools\lntools.yaml`
+
+首次导入时自动创建，可手动编辑或通过 API 管理。
 
 #### 全局配置对象
 
@@ -367,8 +525,8 @@ from lntools import CONFIG
 
 # 访问配置
 print(CONFIG.df_lib)      # 'polars'
-print(CONFIG.mail)        # 邮件配置字典
-print(CONFIG.db)          # 数据库配置字典
+print(CONFIG.mail)        # 邮件配置字典 {'server': 'smtp.example.com', ...}
+print(CONFIG.db)          # 数据库配置字典 {'host': 'localhost', ...}
 ```
 
 #### YAML 文件操作
@@ -376,31 +534,116 @@ print(CONFIG.db)          # 数据库配置字典
 ```python
 from lntools import read_yaml, write_yaml, read_pkg_yaml
 
-# 读取 YAML 文件
-config = read_yaml("config.yaml")
+# 1. 读取项目配置文件（外部文件）
+config = read_yaml("./config/database.yaml")
+db_host = config["database"]["host"]
+db_port = config["database"]["port"]
 
-# 写入 YAML 文件
-data = {"key": "value", "items": [1, 2, 3]}
-write_yaml("output.yaml", data)
+# 2. 读取用户配置（支持路径展开）
+user_config = read_yaml("~/my_project/settings.yaml")
 
-# 读取包内 YAML 文件
-config = read_pkg_yaml("config.yaml", package="lntools")
+# 3. 写入配置文件
+output_config = {
+    "model": {
+        "name": "factor_model_v1",
+        "params": {"learning_rate": 0.01, "epochs": 100}
+    },
+    "data": {
+        "source": "clickhouse",
+        "tables": ["market_data", "factor_values"]
+    }
+}
+write_yaml("./config/model_config.yaml", output_config)
+
+# 4. 读取包内资源文件（适用于库开发者）
+default_config = read_pkg_yaml("defaults.yaml", package="lntools")
+
+# 5. 错误处理示例
+from pathlib import Path
+
+config_path = "./config/optional.yaml"
+if Path(config_path).exists():
+    try:
+        config = read_yaml(config_path)
+    except ValueError as e:
+        print(f"配置文件格式错误: {e}")
+        config = {}
+else:
+    print("配置文件不存在，使用默认值")
+    config = {"default": True}
 ```
 
 #### INI 文件操作
 
 ```python
 from lntools import read_ini, write_ini, read_pkg_ini
+from configparser import ConfigParser
 
-# 读取 INI 文件
-config = read_ini("config.ini")
-value = config['section']['key']
+# 1. 读取数据库配置（外部文件）
+config = read_ini("./config/database.ini")
+host = config["database"]["host"]
+port = config.getint("database", "port")  # 自动类型转换
 
-# 写入 INI 文件
-write_ini("output.ini", config)
+# 2. 读取多个配置段
+api_config = read_ini("/etc/myapp/api.ini")
+for section in api_config.sections():
+    print(f"[{section}]")
+    for key, value in api_config.items(section):
+        print(f"  {key} = {value}")
 
-# 读取包内 INI 文件
-config = read_pkg_ini("config.ini", package="lntools")
+# 3. 修改并保存配置
+config = read_ini("settings.ini")
+config["server"]["timeout"] = "30"
+config["logging"]["level"] = "DEBUG"
+write_ini("settings_updated.ini", config)
+
+# 4. 创建新的 INI 文件
+new_config = ConfigParser()
+new_config["DEFAULT"] = {"debug": "false", "log_level": "info"}
+new_config["database"] = {
+    "host": "localhost",
+    "port": "5432",
+    "database": "trading_db"
+}
+new_config["cache"] = {"enabled": "true", "ttl": "3600"}
+write_ini("./config/prod.ini", new_config)
+
+# 5. 读取包内资源文件（适用于库开发者）
+pkg_config = read_pkg_ini("defaults.ini", package="lntools")
+```
+
+#### 实际应用示例
+
+```python
+from lntools import read_yaml, read_ini, CONFIG
+from pathlib import Path
+
+# 场景1: 多环境配置管理
+env = "production"  # 可从环境变量读取
+config_file = f"./config/{env}.yaml"
+if Path(config_file).exists():
+    app_config = read_yaml(config_file)
+else:
+    raise FileNotFoundError(f"环境配置文件不存在: {config_file}")
+
+# 场景2: 合并默认配置和用户配置
+default_cfg = {"timeout": 10, "retries": 3, "log_level": "INFO"}
+user_cfg_path = Path.home() / ".myapp" / "config.yaml"
+if user_cfg_path.exists():
+    user_cfg = read_yaml(str(user_cfg_path))
+    config = {**default_cfg, **user_cfg}  # 用户配置覆盖默认值
+else:
+    config = default_cfg
+
+# 场景3: 读取数据库连接配置
+db_config = read_ini("./config/database.ini")
+connection_string = (
+    f"clickhouse://{db_config['clickhouse']['user']}:"
+    f"{db_config['clickhouse']['password']}@"
+    f"{db_config['clickhouse']['host']}:"
+    f"{db_config['clickhouse']['port']}/"
+    f"{db_config['clickhouse']['database']}"
+)
 ```
 
 ---
