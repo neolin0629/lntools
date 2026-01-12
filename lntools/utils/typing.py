@@ -1,27 +1,38 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Union
+from typing import TypeAlias
 
 import numpy as np
 import pandas as pd
 import polars as pl
 
-# Defining types for array-like and series-like data
-ArrayLike = Union[list, np.ndarray, pd.Series, pl.Series]
-SeriesLike = Union[pd.Series, pl.Series]
+# ==========================================
+# Data Structure Types
+# ==========================================
 
-# Defining types for date and time-related data
-DatetimeLike = Union[pd.Timestamp, int, float, str, datetime]
-# Explanation of DatetimeLike possibilities:
-# int: e.g., 20230420 (yearmonthday)
-# float: e.g., 1681968801.5371664 (Unix timestamp)
-# str: e.g., "20230420" or "today" (various string formats)
+# Lists, Arrays, and Series
+ArrayLike: TypeAlias = list | np.ndarray | pd.Series | pl.Series
+SeriesLike: TypeAlias = pd.Series | pl.Series
 
-# Defining types for DataFrame structures
-DataFrameLike = Union[pd.DataFrame, pl.DataFrame, pl.LazyFrame]
+# DataFrames (Eager and Lazy)
+DataFrameLike: TypeAlias = pd.DataFrame | pl.DataFrame | pl.LazyFrame
 
-# Polars specific datetime types
-PolarsDate = Union[pl.Datetime, pl.Date, pl.Time]
+# ==========================================
+# Time & Date Types
+# ==========================================
 
-# Defining types for file path specifications
-PathLike = Union[str, Path]
+# Flexible datetime input:
+# - Timestamp/datetime objects
+# - int (YYYYMMDD or Epoch)
+# - float (Epoch)
+# - str ("20230420", "today")
+DatetimeLike: TypeAlias = pd.Timestamp | datetime | int | float | str
+
+# Polars specific temporal types (Dtypes)
+PolarsDate: TypeAlias = pl.Datetime | pl.Date | pl.Time
+
+# ==========================================
+# File System Types
+# ==========================================
+
+PathLike: TypeAlias = str | Path

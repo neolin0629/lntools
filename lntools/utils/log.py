@@ -1,9 +1,3 @@
-"""
-Logging utility module that provides a customizable Logger class.
-
-@author Neo
-@time 2024/6/11
-"""
 from __future__ import annotations
 
 import logging

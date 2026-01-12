@@ -1,10 +1,3 @@
-#
-# directory.py
-# @author Linnan
-# @description Describing Data Source of `Directory`
-# @created 2024-12-17 14:02:28.270Z+08:00
-# @last-modified 2024-12-17 14:02:28.270Z+08:00
-#
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor, as_completed

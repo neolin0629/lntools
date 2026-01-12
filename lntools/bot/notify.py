@@ -1,5 +1,5 @@
 import time
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 import requests
 
@@ -18,7 +18,7 @@ class FeishuNotifier:
         webhook: str,
         timeout: int = 10,
         retries: int = 3,
-        session: Optional[requests.Session] = None
+        session: requests.Session | None = None
     ):
         """
         初始化通知器。
@@ -35,7 +35,7 @@ class FeishuNotifier:
         self.session = session or requests.Session()
         self.headers = {"Content-Type": "application/json"}
 
-    def send(self, msg_type: str, content: Union[str, Dict[str, Any]]) -> bool:
+    def send(self, msg_type: str, content: str | dict[str, Any]) -> bool:
         """
         通用发送方法。
 
@@ -74,9 +74,9 @@ class FeishuNotifier:
         }
         return self.send("interactive", card_data)
 
-    def _build_payload(self, msg_type: str, content: Union[str, Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    def _build_payload(self, msg_type: str, content: str | dict[str, Any]) -> dict[str, Any] | None:
         """构建飞书 API 所需的负载数据。"""
-        data: Dict[str, Any] = {"msg_type": msg_type}
+        data: dict[str, Any] = {"msg_type": msg_type}
 
         if msg_type == "text":
             data["content"] = {"text": content}
@@ -98,7 +98,7 @@ class FeishuNotifier:
 
         return data
 
-    def _do_post(self, data: Dict[str, Any]) -> bool:
+    def _do_post(self, data: dict[str, Any]) -> bool:
         """执行带有指数退避重试的 POST 请求。"""
         for attempt in range(self.retries):
             try:

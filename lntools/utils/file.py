@@ -1,10 +1,3 @@
-#
-# file.py
-# @author Linnan
-# @description Describing Data Source of `File`
-# @created 2023-04-14T13:59:36.519Z+08:00
-# @last-modified 2023-09-10T11:40:36.955Z+08:00
-#
 from __future__ import annotations
 
 import os

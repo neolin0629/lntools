@@ -1,8 +1,3 @@
-"""
-Configuration API of lntools.
-@author: Neo
-@date: 2024/6/9
-"""
 import importlib.resources
 from configparser import ConfigParser, ExtendedInterpolation
 from dataclasses import dataclass, field, fields
@@ -12,7 +7,6 @@ from typing import Any, Dict
 from yaml import Loader, dump, load, safe_dump, safe_load
 
 from lntools.utils import Logger, PathLike, handle_path
-
 
 log = Logger("lntools.config")
 PATH: Path = handle_path(Path.home() / ".config" / "lntools" / "lntools.yaml")

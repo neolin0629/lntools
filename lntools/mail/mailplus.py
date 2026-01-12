@@ -1,11 +1,7 @@
-"""Tools to send email with enhanced functionality and type safety.
-@author Neo
-@time 2024/6/12
-"""
 import re
 import smtplib
 import time
-from typing import Union, List, Optional, Any
+from typing import Any
 
 from email import encoders
 from email.header import Header
@@ -33,7 +29,7 @@ class MailPlus:
     DEFAULT_TLS_PORT = 465
     CHINESE_PATTERN = re.compile('[\u4e00-\u9fa5]+')
 
-    def __init__(self, cfg: Optional[dict[str, str]] = None) -> None:
+    def __init__(self, cfg: dict[str, str] | None = None) -> None:
         """Initialize MailPlus with configuration.
 
         Args:
@@ -65,8 +61,8 @@ class MailPlus:
 
         self.text: str = ''
         self.image_cnt: int = 0
-        self.to: List[str] = []
-        self.cc: List[str] = []
+        self.to: list[str] = []
+        self.cc: list[str] = []
 
         log.debug("MailPlus initialized: server=%s, port=%d, TLS=%s",
                   cfg['server'], self.config['port'], self.use_tls)
@@ -102,9 +98,9 @@ class MailPlus:
 
     def newemail(
         self,
-        to: Union[str, List[str]],
+        to: str | list[str],
         subject: str,
-        cc: Optional[Union[str, List[str]]] = None
+        cc: str | list[str] | None = None
     ) -> "MailPlus":
         """
         Initialize a new email with recipients and subject.
@@ -157,7 +153,7 @@ class MailPlus:
         self.text += f'<h1>{title}</h1>'
         return self
 
-    def add_href(self, href: str, title: Optional[str] = None) -> "MailPlus":
+    def add_href(self, href: str, title: str | None = None) -> "MailPlus":
         """
         Add hyperlink to email body.
 
@@ -174,7 +170,7 @@ class MailPlus:
         self.text += f'<p><a href="{href}">{safe_title}</a></p>'
         return self
 
-    def add_table(self, df: Union[pd.DataFrame, pl.DataFrame]) -> "MailPlus":
+    def add_table(self, df: pd.DataFrame | pl.DataFrame) -> "MailPlus":
         """
         Add DataFrame as HTML table to email body.
 
@@ -200,7 +196,7 @@ class MailPlus:
         self.text += html_table
         return self
 
-    def add_images(self, imgs: List[PathLike]) -> "MailPlus":
+    def add_images(self, imgs: list[PathLike]) -> "MailPlus":
         """
         Add inline images to email body with CID (Content-ID) references.
 
@@ -238,7 +234,7 @@ class MailPlus:
                 raise OSError(f"Cannot read image file: {img_path}") from e
         return self
 
-    def add_attachments(self, files: List[PathLike]) -> "MailPlus":
+    def add_attachments(self, files: list[PathLike]) -> "MailPlus":
         """
         Add file attachments to email (supports any file type).
 

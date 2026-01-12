@@ -1,26 +1,14 @@
-"""
-Functions to deal with files and directories.
-
-This module provides utility functions for file system operations including:
-- Path validation and manipulation
-- File operations (move, copy, rename, remove)
-- Directory operations
-- File reading with multiple formats support
-
-@author: Neo
-@time: 2024/6/8
-"""
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from datetime import datetime
-from typing import Optional, List, Callable, Union, Dict, Any
+from typing import Callable, Any
 import shutil
 import numpy as np
 import pandas as pd
 import polars as pl
 
-from lntools.utils.log import Logger 
-from lntools.utils.typing import PathLike, DatetimeLike
+from .log import Logger
+from .typing import PathLike, DatetimeLike
 
 log = Logger("lntools.utils.filesystem")
 
@@ -162,22 +150,24 @@ def file_time(file_path: PathLike, method: str = 'm') -> datetime:
     if not path_obj.exists():
         raise FileNotFoundError(f"File does not exist: {file_path}")
 
-    times = {
-        'a': path_obj.stat().st_atime,
-        'm': path_obj.stat().st_mtime,
-        'c': path_obj.stat().st_ctime
-    }
-    if method not in times:
+    stat = path_obj.stat()
+    if method == 'a':
+        timestamp = stat.st_atime
+    elif method == 'm':
+        timestamp = stat.st_mtime
+    elif method == 'c':
+        timestamp = stat.st_ctime
+    else:
         raise ValueError("Method must be one of 'a' (accessed), 'm' (modified), 'c' (created)")
 
-    return ts2dt(times[method])
+    return ts2dt(timestamp)
 
 
 def list_paths(
     rootdir: PathLike,
     files_only: bool = False,
     dirs_only: bool = False
-) -> List[Path]:
+) -> list[Path]:
     """
     List paths under the given root directory.
 
@@ -208,17 +198,17 @@ def list_paths(
 get_all = list_paths
 
 
-def get_dirs(root: PathLike) -> List[Path]:
+def get_dirs(root: PathLike) -> list[Path]:
     """Get all directories under the given root directory."""
     return list_paths(root, dirs_only=True)
 
 
-def get_files(root: PathLike) -> List[Path]:
+def get_files(root: PathLike) -> list[Path]:
     """Get all files under the given root directory."""
     return list_paths(root, files_only=True)
 
 
-READERS: Dict[str, Dict[str, Callable]] = {
+READERS: dict[str, dict[str, Callable]] = {
     "pandas": {
         ".csv": pd.read_csv,
         ".txt": pd.read_csv,
@@ -258,9 +248,9 @@ READERS: Dict[str, Dict[str, Callable]] = {
 
 def read_file(
     path: PathLike,
-    df_lib: Optional[str] = None,
+    df_lib: str | None = None,
     **kwargs: Any
-) -> Union[pd.DataFrame, pl.DataFrame, np.ndarray, str, bytes]:
+) -> pd.DataFrame | pl.DataFrame | np.ndarray | str | bytes:
     """
     Read file content using specified library.
 
@@ -309,7 +299,7 @@ def _get_formatted_files(
     file_pattern: str = "{date}.csv",
     date_format: str = "%Y-%m-%d",
     use_tcal: bool = True
-) -> List[Path]:
+) -> list[Path]:
     """
     Get list of formatted file paths between two dates.
 
@@ -327,7 +317,7 @@ def _get_formatted_files(
     Raises:
         RuntimeError: If no matching files found
     """
-    from lntools.timeutils import dt2str, get
+    from lntools.timeutils import dt2str, get_range
 
     # 尝试使用交易日历，如果不可用则降级到普通日期
     if use_tcal:
@@ -336,9 +326,9 @@ def _get_formatted_files(
             dates = TCalendar(["tdate"]).get(sdt, edt, dtype="datetime")
         except ImportError:
             log.warning("交易日历包不可用，使用普通日期范围")
-            dates = get(sdt, edt)
+            dates = get_range(sdt, edt)
     else:
-        dates = get(sdt, edt)
+        dates = get_range(sdt, edt)
 
     base_path = Path(path)
     if not base_path.exists():
@@ -368,16 +358,16 @@ def _get_formatted_files(
 
 def read_directory(
     path: PathLike,
-    reader: Optional[Callable] = None,
-    sdt: Optional[DatetimeLike] = None,
-    edt: Optional[DatetimeLike] = None,
+    reader: Callable | None = None,
+    sdt: DatetimeLike | None = None,
+    edt: DatetimeLike | None = None,
     file_pattern: str = "{date}.csv",
     date_format: str = "%Y-%m-%d",
     use_tcal: bool = True,
     df_lib: str = "polars",
     threads: int = 10,
     **kwargs: Any
-) -> Union[pd.DataFrame, pl.DataFrame]:
+) -> pd.DataFrame | pl.DataFrame:
     """
     Read and concatenate files from directory.
 
@@ -415,7 +405,7 @@ def read_directory(
         return pl.DataFrame() if df_lib == "polars" else pd.DataFrame()
 
     # Parallel read files
-    def _read_file(f: Path) -> Union[pd.DataFrame, pl.DataFrame]:
+    def _read_file(f: Path) -> pd.DataFrame | pl.DataFrame:
         try:
             if reader is read_file:
                 return reader(f, df_lib=df_lib, **kwargs)
