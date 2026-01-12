@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lntools"
+version = "0.1.0"
+description = "ln gentools"
+authors = [
+    {name = "linnan", email = "lnonly@163.com"}
+]
+requires-python = ">=3.11"
+dependencies = [
+    "numpy",
+    "pandas",
+    "polars",
+    "rich",
+    "pyyaml",
+    "pyarrow",
+    "requests",
+]
+
+[tool.setuptools]
+zip-safe = false
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.setuptools.package-data]
+lntools = [
+    "config/*.yaml",
+    "config/*.ini"
+]
