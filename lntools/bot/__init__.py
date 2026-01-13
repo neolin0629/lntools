@@ -1,6 +1,3 @@
-from .notify import FeishuNotifier
+from .notify import FeishuNotifier, WeComNotifier
 
-
-__all__ = [
-    "FeishuNotifier"
-]
+__all__ = ["FeishuNotifier", "WeComNotifier"]

@@ -1,22 +1,20 @@
+from email import encoders
+from email.header import Header
+from email.mime.base import MIMEBase
+from email.mime.image import MIMEImage
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.utils import formataddr, parseaddr
 import re
 import smtplib
 import time
 from typing import Any
 
-from email import encoders
-from email.header import Header
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.base import MIMEBase
-from email.mime.image import MIMEImage
-from email.utils import parseaddr, formataddr
-
 import pandas as pd
 import polars as pl
 
 from lntools.config import CONFIG
-from lntools.utils import Logger
-from lntools.utils.typing import PathLike
+from lntools.utils import Logger, PathLike
 
 log = Logger("lntools.mail")
 
@@ -24,10 +22,10 @@ log = Logger("lntools.mail")
 class MailPlus:
     """A tool to send emails with rich content support including HTML, images, and attachments."""
 
-    REQUIRED_CONFIG = {'server', 'username', 'password'}
+    REQUIRED_CONFIG = {"server", "username", "password"}
     DEFAULT_PORT = 25
     DEFAULT_TLS_PORT = 465
-    CHINESE_PATTERN = re.compile('[\u4e00-\u9fa5]+')
+    CHINESE_PATTERN = re.compile("[\u4e00-\u9fa5]+")
 
     def __init__(self, cfg: dict[str, str] | None = None) -> None:
         """Initialize MailPlus with configuration.
@@ -44,28 +42,32 @@ class MailPlus:
         if not cfg or not all(key in cfg for key in self.REQUIRED_CONFIG):
             raise ValueError("Missing required mail configuration")
 
-        self.use_tls = cfg.get('use_tls', 'false').lower() == 'true'
+        self.use_tls = cfg.get("use_tls", "false").lower() == "true"
         default_port = self.DEFAULT_TLS_PORT if self.use_tls else self.DEFAULT_PORT
 
         self.config: dict[str, Any] = {
-            'server': cfg['server'],
-            'port': int(cfg.get('port', default_port)),
-            'username': cfg['username'],
-            'password': cfg['password'],
-            'use_tls': self.use_tls
+            "server": cfg["server"],
+            "port": int(cfg.get("port", default_port)),
+            "username": cfg["username"],
+            "password": cfg["password"],
+            "use_tls": self.use_tls,
         }
 
         self.msg = MIMEMultipart()
-        self.from_name = self.config['username'].split('@')[0]
-        self.msg['From'] = self._format_addr(f'{self.from_name} <{self.config["username"]}>')
+        self.from_name = self.config["username"].split("@")[0]
+        self.msg["From"] = self._format_addr(f"{self.from_name} <{self.config['username']}>")
 
-        self.text: str = ''
+        self.text: str = ""
         self.image_cnt: int = 0
         self.to: list[str] = []
         self.cc: list[str] = []
 
-        log.debug("MailPlus initialized: server=%s, port=%d, TLS=%s",
-                  cfg['server'], self.config['port'], self.use_tls)
+        log.debug(
+            "MailPlus initialized: server=%s, port=%d, TLS=%s",
+            cfg["server"],
+            self.config["port"],
+            self.use_tls,
+        )
 
     def _format_addr(self, s: str) -> str:
         """
@@ -80,7 +82,7 @@ class MailPlus:
         Time Complexity: O(n) where n is string length.
         """
         name, addr = parseaddr(s)
-        return formataddr((Header(name, 'utf-8').encode(), addr))
+        return formataddr((Header(name, "utf-8").encode(), addr))
 
     def _contain_zh(self, s: str) -> bool:
         """
@@ -97,10 +99,7 @@ class MailPlus:
         return bool(self.CHINESE_PATTERN.search(s))
 
     def newemail(
-        self,
-        to: str | list[str],
-        subject: str,
-        cc: str | list[str] | None = None
+        self, to: str | list[str], subject: str, cc: str | list[str] | None = None
     ) -> "MailPlus":
         """
         Initialize a new email with recipients and subject.
@@ -117,10 +116,10 @@ class MailPlus:
         """
         self.to = [to] if isinstance(to, str) else to
         self.cc = [] if cc is None else [cc] if isinstance(cc, str) else cc
-        self.msg['To'] = ','.join(self.to)
-        self.msg['Subject'] = Header(subject, 'utf-8').encode()
+        self.msg["To"] = ",".join(self.to)
+        self.msg["Subject"] = Header(subject, "utf-8").encode()
         if self.cc:
-            self.msg['Cc'] = ','.join(self.cc)
+            self.msg["Cc"] = ",".join(self.cc)
         return self
 
     def add_content(self, content: str) -> "MailPlus":
@@ -135,7 +134,7 @@ class MailPlus:
 
         Time Complexity: O(n) where n is content length.
         """
-        self.text += f'<p>{content}</p>'
+        self.text += f"<p>{content}</p>"
         return self
 
     def add_title(self, title: str) -> "MailPlus":
@@ -150,7 +149,7 @@ class MailPlus:
 
         Time Complexity: O(n) where n is title length.
         """
-        self.text += f'<h1>{title}</h1>'
+        self.text += f"<h1>{title}</h1>"
         return self
 
     def add_href(self, href: str, title: str | None = None) -> "MailPlus":
@@ -221,10 +220,10 @@ class MailPlus:
                 raise FileNotFoundError(f"Image file not found: {img_path}")
 
             try:
-                with open(img_path, 'rb') as f:
+                with open(img_path, "rb") as f:
                     msg_image = MIMEImage(f.read())
                     cid = str(self.image_cnt)
-                    msg_image.add_header('Content-ID', f'<{cid}>')
+                    msg_image.add_header("Content-ID", f"<{cid}>")
                     self.msg.attach(msg_image)
                     self.text += f'<p><img src="cid:{cid}"></p>'
                     self.image_cnt += 1
@@ -259,19 +258,17 @@ class MailPlus:
                 raise FileNotFoundError(f"Attachment file not found: {file_path}")
 
             try:
-                with open(file_path, 'rb') as f:
-                    mime = MIMEBase('application', 'octet-stream')
+                with open(file_path, "rb") as f:
+                    mime = MIMEBase("application", "octet-stream")
                     mime.set_payload(f.read())
                     encoders.encode_base64(mime)
 
                     filename = file_path.name
                     filename_header = (
-                        Header(filename, 'gbk').encode()
-                        if self._contain_zh(filename)
-                        else filename
+                        Header(filename, "gbk").encode() if self._contain_zh(filename) else filename
                     )
 
-                    mime.add_header('Content-Disposition', 'attachment', filename=filename_header)
+                    mime.add_header("Content-Disposition", "attachment", filename=filename_header)
                     self.msg.attach(mime)
                     log.debug("Attached file: %s (%d bytes)", filename, file_path.stat().st_size)
             except OSError as e:
@@ -296,29 +293,25 @@ class MailPlus:
             log.error("No recipients specified for email")
             raise ValueError("No recipients specified")
 
-        self.msg.attach(MIMEText(self.text, 'html', 'utf-8'))
+        self.msg.attach(MIMEText(self.text, "html", "utf-8"))
         recipients = self.to + self.cc
 
         for attempt in range(retries):
             try:
-                if self.config['use_tls']:
+                if self.config["use_tls"]:
                     # Use SMTP_SSL for TLS connection
                     with smtplib.SMTP_SSL(
-                        self.config['server'],
-                        self.config['port'],
-                        timeout=30
+                        self.config["server"], self.config["port"], timeout=30
                     ) as smtp:
-                        smtp.login(self.config['username'], self.config['password'])
-                        smtp.sendmail(self.config['username'], recipients, self.msg.as_string())
+                        smtp.login(self.config["username"], self.config["password"])
+                        smtp.sendmail(self.config["username"], recipients, self.msg.as_string())
                 else:
                     # Use standard SMTP
                     with smtplib.SMTP(
-                        self.config['server'],
-                        self.config['port'],
-                        timeout=30
+                        self.config["server"], self.config["port"], timeout=30
                     ) as smtp:
-                        smtp.login(self.config['username'], self.config['password'])
-                        smtp.sendmail(self.config['username'], recipients, self.msg.as_string())
+                        smtp.login(self.config["username"], self.config["password"])
+                        smtp.sendmail(self.config["username"], recipients, self.msg.as_string())
 
                 log.info("Email sent successfully to %d recipient(s)", len(recipients))
                 return True
@@ -331,7 +324,10 @@ class MailPlus:
                 if attempt < retries - 1:
                     log.warning(
                         "Email send failed (attempt %d/%d): %s, retrying in %.1fs",
-                        attempt + 1, retries, e, retry_delay
+                        attempt + 1,
+                        retries,
+                        e,
+                        retry_delay,
                     )
                     time.sleep(retry_delay)
                 else:
@@ -342,7 +338,10 @@ class MailPlus:
                 if attempt < retries - 1:
                     log.warning(
                         "Connection error (attempt %d/%d): %s, retrying in %.1fs",
-                        attempt + 1, retries, e, retry_delay
+                        attempt + 1,
+                        retries,
+                        e,
+                        retry_delay,
                     )
                     time.sleep(retry_delay)
                 else:
@@ -369,31 +368,35 @@ class MailPlus:
             raise ValueError("Missing required mail configuration")
 
         try:
-            self.use_tls = cfg.get('use_tls', 'false').lower() == 'true'
+            self.use_tls = cfg.get("use_tls", "false").lower() == "true"
             default_port = self.DEFAULT_TLS_PORT if self.use_tls else self.DEFAULT_PORT
 
             # Update configuration
             self.config = {
-                'server': cfg['server'],
-                'port': int(cfg.get('port', default_port)),
-                'username': cfg['username'],
-                'password': cfg['password'],
-                'use_tls': self.use_tls
+                "server": cfg["server"],
+                "port": int(cfg.get("port", default_port)),
+                "username": cfg["username"],
+                "password": cfg["password"],
+                "use_tls": self.use_tls,
             }
 
             # Update message headers
             self.msg = MIMEMultipart()
-            self.from_name = self.config['username'].split('@')[0]
-            self.msg['From'] = self._format_addr(f'{self.from_name} <{self.config["username"]}>')
+            self.from_name = self.config["username"].split("@")[0]
+            self.msg["From"] = self._format_addr(f"{self.from_name} <{self.config['username']}>")
 
             # Clear existing content
-            self.text = ''
+            self.text = ""
             self.image_cnt = 0
             self.to = []
             self.cc = []
 
-            log.info("Mail server updated: %s:%d (TLS: %s)",
-                     self.config['server'], self.config['port'], self.use_tls)
+            log.info(
+                "Mail server updated: %s:%d (TLS: %s)",
+                self.config["server"],
+                self.config["port"],
+                self.use_tls,
+            )
             return self
 
         except (KeyError, ValueError) as e:

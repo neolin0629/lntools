@@ -1,8 +1,8 @@
-import importlib.resources
 from configparser import ConfigParser, ExtendedInterpolation
 from dataclasses import dataclass, field, fields
+import importlib.resources
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from yaml import Loader, dump, load, safe_dump, safe_load
 
@@ -34,9 +34,7 @@ def read_pkg_ini(
     ref = importlib.resources.files(package) / config_name
     with importlib.resources.as_file(ref) as config_path:
         if not config_path.exists():
-            raise FileNotFoundError(
-                f"INI file '{config_name}' not found in package '{package}'"
-            )
+            raise FileNotFoundError(f"INI file '{config_name}' not found in package '{package}'")
         cfg = ConfigParser(interpolation=ExtendedInterpolation())
         try:
             cfg.read(str(config_path), encoding=encoding)
@@ -69,7 +67,7 @@ def read_ini(path: PathLike, encoding: str = "utf8") -> ConfigParser:
 
     cfg = ConfigParser(interpolation=ExtendedInterpolation())
     try:
-        with open(path, "r", encoding=encoding) as file:
+        with open(path, encoding=encoding) as file:
             cfg.read_file(file)
     except Exception as exc:
         log.error("Failed to read INI file '%s': %s", path, exc)
@@ -125,11 +123,9 @@ def read_pkg_yaml(
     ref = importlib.resources.files(package) / config_name
     with importlib.resources.as_file(ref) as resource_path:
         if not resource_path.exists():
-            raise FileNotFoundError(
-                f"YAML file '{config_name}' not found in package '{package}'"
-            )
+            raise FileNotFoundError(f"YAML file '{config_name}' not found in package '{package}'")
         try:
-            with open(resource_path, "r", encoding=encoding) as file:
+            with open(resource_path, encoding=encoding) as file:
                 return safe_load(file) if safe else load(file, Loader=Loader)
         except Exception as exc:
             log.error("Failed to parse YAML file '%s': %s", config_name, exc)
@@ -159,7 +155,7 @@ def read_yaml(path: PathLike, encoding: str = "utf8", safe: bool = True) -> Any:
         raise FileNotFoundError(f"YAML file not found: {path}")
 
     try:
-        with open(path, "r", encoding=encoding) as file:
+        with open(path, encoding=encoding) as file:
             return safe_load(file) if safe else load(file, Loader=Loader)
     except Exception as exc:
         log.error("Failed to parse YAML file '%s': %s", path, exc)
@@ -202,9 +198,9 @@ class Config:
         df_lib: Default dataframe library ("polars", "pandas", or "numpy").
     """
 
-    db: Dict[str, str] = field(default_factory=dict)
-    mail: Dict[str, str] = field(default_factory=dict)
-    df_lib: str = field(default="polars")
+    db: dict[str, str] = field(default_factory=dict)
+    mail: dict[str, str] = field(default_factory=dict)
+    df_lib: str = field(default="pandas")
 
 
 def config() -> Config:

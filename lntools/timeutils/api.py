@@ -1,7 +1,8 @@
+from collections.abc import Callable
 from datetime import datetime
-import time
 import functools
-from typing import Literal, Any, Callable
+import time
+from typing import Literal, ParamSpec, TypeVar
 
 import pandas as pd
 import polars as pl
@@ -11,17 +12,19 @@ from lntools.utils.typing import DatetimeLike
 # ==========================================
 # 类型定义与常量
 # ==========================================
+P = ParamSpec("P")
+R = TypeVar("R")
 
-DATE_STR_PATTERN: str = r'\d{4}(0[1-9]|1[0-2])(0[1-9]|[1-2][0-9]|3[0-1])'
+DATE_STR_PATTERN: str = r"\d{4}(0[1-9]|1[0-2])(0[1-9]|[1-2][0-9]|3[0-1])"
 
 FormatMethod = Literal["standard", "compact", "wide", "time", "datetime"]
 
 SHORTCUTS: dict[str, str] = {
-    "standard": '%Y/%m/%d',
-    "compact": '%Y%m%d',
-    "wide": '%Y-%m-%d',
-    "time": '%H:%M:%S',
-    "datetime": '%Y/%m/%d %H:%M:%S',
+    "standard": "%Y/%m/%d",
+    "compact": "%Y%m%d",
+    "wide": "%Y-%m-%d",
+    "time": "%H:%M:%S",
+    "datetime": "%Y/%m/%d %H:%M:%S",
 }
 
 
@@ -29,12 +32,13 @@ SHORTCUTS: dict[str, str] = {
 # 装饰器
 # ==========================================
 
+
 def timer(
     msg: str,
     reporter: Callable[[str], None] = print,
     threshold: float = 3.0,
     process_time: bool = False,
-) -> Callable:
+) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """
     Performance analysis decorator to measure execution time.
 
@@ -46,25 +50,27 @@ def timer(
     """
     timer_func = time.process_time if process_time else time.perf_counter
 
-    def decorator(func: Callable) -> Callable:
+    def decorator(func: Callable[P, R]) -> Callable[P, R]:
         @functools.wraps(func)
-        def wrapper(*args: Any, **kwargs: Any) -> Any:
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             start_time = timer_func()
             result = func(*args, **kwargs)
             elapsed = timer_func() - start_time
 
             if elapsed >= threshold:
-                # 这里假设 sec2str 已内置或使用简单的格式化
-                time_str = f"{elapsed:.2f}s" if elapsed < 60 else f"{elapsed/60:.2f}min"
+                time_str = f"{elapsed:.2f}s" if elapsed < 60 else f"{elapsed / 60:.2f}min"
                 reporter(f"[{msg}] 耗时: {time_str}")
             return result
+
         return wrapper
+
     return decorator
 
 
 # ==========================================
 # 核心转换函数 (Internal)
 # ==========================================
+
 
 def to_timestamp(t: DatetimeLike, date_only: bool = False) -> pd.Timestamp:
     """
@@ -81,12 +87,17 @@ def to_timestamp(t: DatetimeLike, date_only: bool = False) -> pd.Timestamp:
         ts = pd.Timestamp.now()
     else:
         try:
-            # pd.to_datetime 能自动处理 int(YYYYMMDD) 或 epoch
-            ts = pd.to_datetime(t)
+            if isinstance(t, int) and t > 19000101:
+                # Assume YYYYMMDD format for large integers
+                ts = pd.to_datetime(str(t), format="%Y%m%d")
+            else:
+                # Let pandas handle str, float (epoch), datetime, etc.
+                ts = pd.to_datetime(t)
         except Exception as e:
             raise ValueError(f"Invalid datetime format: {t}") from e
 
     return ts.normalize() if date_only else ts
+
 
 # ==========================================
 # 工具函数
@@ -127,8 +138,7 @@ def diff(start_date: DatetimeLike, end_date: DatetimeLike) -> int:
 
 
 def get_range(
-    start_date: DatetimeLike | None = None,
-    end_date: DatetimeLike | None = None
+    start_date: DatetimeLike | None = None, end_date: DatetimeLike | None = None
 ) -> list[pd.Timestamp]:
     """
     Generate a list of daily timestamps within a specified range.
@@ -143,7 +153,7 @@ def get_range(
     if start > end:
         raise ValueError(f"Start date {start} cannot be later than end date {end}")
 
-    return pd.date_range(start, end, freq='D').tolist()
+    return pd.date_range(start, end, freq="D").tolist()
 
 
 def dt2str(d: datetime | pd.Timestamp, method: FormatMethod | str = "wide") -> str:

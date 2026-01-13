@@ -17,8 +17,8 @@
 - 🕐 **时间工具** - 强大的日期时间处理和格式转换
 - 📁 **文件系统** - 简洁的文件和目录操作 API
 - 📧 **邮件发送** - 支持 HTML、图片、附件的链式邮件工具
-- 🤖 **消息通知** - 飞书 Webhook 通知集成
-- ⚙️ **配置管理** - YAML/INI 配置文件管理
+- 🤖 **消息通知** - 飞书、微信 Webhook 通知集成
+- ⚙️ **配置管理** - YAML / INI 配置文件管理
 - 📝 **日志记录** - Rich 美化的日志输出
 - 🎨 **人性化格式** - 路径、单位、时间等的友好显示
 - 🔧 **类型定义** - 完整的类型提示支持
@@ -33,7 +33,7 @@
 ```bash
 git clone https://github.com/neolin0629/lntools.git
 cd lntools
-pip install -e .
+pip install .
 ```
 
 ### 依赖项
@@ -44,6 +44,8 @@ pip install -e .
 - `rich` - 终端美化输出
 - `pyyaml` - YAML 配置文件
 - `pyarrow` - 高效数据存储
+- `request` - HTTP 客户端库
+- `tqdm` - 智能进度条库
 
 ---
 
@@ -69,7 +71,7 @@ mail:
   password: your_password
 
 # 默认数据框架库
-df_lib: polars  # 可选: pandas, polars, numpy
+df_lib: pandas  # 可选: pandas, polars
 ```
 
 ---
@@ -80,78 +82,127 @@ df_lib: polars  # 可选: pandas, polars, numpy
 
 提供丰富的日期时间处理功能，包括格式转换、日期计算等。
 
-#### 基础函数
+#### 核心转换函数
 
 ```python
-from lntools import now, adjust, diff, get, day_of_week
+from lntools.timeutils import to_timestamp
+import pandas as pd
 
-# 获取当前时间
-current = now()
+# 将任意日期类型转换为 pandas.Timestamp
+dt = to_timestamp("2024-01-01")                # 字符串
+dt = to_timestamp(20240101)                     # 整数 (YYYYMMDD)
+dt = to_timestamp(1704067200.0)                 # Unix 时间戳
+dt = to_timestamp("today")                      # 特殊关键字
+dt = to_timestamp(pd.Timestamp("2024-01-01"))  # Timestamp 对象
+
+# 仅保留日期部分（归一化到午夜）
+dt = to_timestamp("2024-01-01 15:30:00", date_only=True)  # 2024-01-01 00:00:00
+```
+
+#### 日期计算函数
+
+```python
+from lntools.timeutils import adjust, diff, get_range, day_of_week
 
 # 日期调整（加减天数）
-tomorrow = adjust("2024-01-01", 1)      # 2024-01-02（下一天）
-yesterday = adjust("2024-01-01", -1)    # 2023-12-31（前一天）
-today = adjust("today")                  # 今天
+tomorrow = adjust("2024-01-01", 1)      # 2024-01-02
+yesterday = adjust("2024-01-01", -1)    # 2023-12-31
+today = adjust("today", 0)              # 今天
+
+# 仅保留日期部分
+date_only = adjust("2024-01-01 15:30:00", 0, date_only=True)
 
 # 计算日期差（天数）
-days = diff("2024-01-01", "2024-02-01")  # 返回 31（两个日期之间相差31天）
+days = diff("2024-01-01", "2024-02-01")  # 31
 
 # 生成日期序列（包含起止日期）
-dates = get("2024-01-01", "2024-01-31")  # 返回31个日期的列表（1月1日到1月31日）
+dates = get_range("2024-01-01", "2024-01-31")  # 返回 31 个 Timestamp 对象的列表
+dates = get_range("2024-01-01", None)           # 从 2024-01-01 到今天
+dates = get_range(None, "2024-12-31")           # 从 2010-01-01 到 2024-12-31（默认起始）
 
 # 获取星期几（1=周一，7=周日）
-weekday = day_of_week("2024-01-01")
-weekday = day_of_week("today")
+weekday = day_of_week("2024-01-01")  # 1（周一）
+weekday = day_of_week("today")       # 当前是星期几
 ```
 
 #### 格式转换函数
 
 ```python
-from lntools import str2dt, str2ts, ts2dt, ts2str, dt2str, dt2ts
+from lntools.timeutils import dt2str, ts2str
 from datetime import datetime
-
-# 字符串 -> Timestamp
-dt = str2dt("2024-01-01")
-dt = str2dt("20240101")
-
-# 字符串 -> Unix时间戳
-timestamp = str2ts("2024-01-01")  # 1704067200.0
-
-# Unix时间戳 -> datetime
-dt = ts2dt(1704067200)
-
-# Unix时间戳 -> 字符串
-date_str = ts2str(1704067200, "wide")      # '2024-01-01'
-date_str = ts2str(1704067200, "compact")   # '20240101'
-
-# datetime -> Unix时间戳
-timestamp = dt2ts(datetime(2024, 1, 1))
-
-# datetime -> 字符串
-date_str = dt2str(datetime(2024, 1, 1), "wide")  # '2024-01-01'
-```
-
-#### 日期格式快捷方式
-
-```python
-from lntools import SHORTCUTS
+import pandas as pd
 
 # 可用的格式快捷方式
-# SHORTCUTS = {
-#     "standard": '%Y/%m/%d',       # 2024/01/01
-#     "compact": '%Y%m%d',          # 20240101
-#     "wide": '%Y-%m-%d',           # 2024-01-01
-#     "time": '%H:%M:%S',           # 14:30:00
-#     "datetime": '%Y/%m/%d %H:%M:%S'  # 2024/01/01 14:30:00
+print(SHORTCUTS)
+# {
+#     "standard": '%Y/%m/%d',              # 2024/01/01
+#     "compact": '%Y%m%d',                 # 20240101
+#     "wide": '%Y-%m-%d',                  # 2024-01-01
+#     "time": '%H:%M:%S',                  # 14:30:00
+#     "datetime": '%Y/%m/%d %H:%M:%S'      # 2024/01/01 14:30:00
 # }
 
-# 使用快捷方式
-from lntools import dt2str
-from datetime import datetime
+# datetime/Timestamp -> 字符串
+date_str = dt2str(datetime(2024, 1, 1), "wide")       # '2024-01-01'
+date_str = dt2str(datetime(2024, 1, 1), "compact")    # '20240101'
+date_str = dt2str(datetime(2024, 1, 1), "standard")   # '2024/01/01'
+date_str = dt2str(datetime.now(), "datetime")         # '2024/01/01 14:30:00'
 
-dt2str(datetime.now(), "standard")  # '2024/01/01'
-dt2str(datetime.now(), "compact")   # '20240101'
-dt2str(datetime.now(), "datetime")  # '2024/01/01 14:30:00'
+# 支持 pandas.Timestamp
+date_str = dt2str(pd.Timestamp("2024-01-01"), "wide")  # '2024-01-01'
+
+# Unix 时间戳 -> 字符串
+date_str = ts2str(1704067200, "wide")      # '2024-01-01'
+date_str = ts2str(1704067200.0, "compact") # '20240101'
+
+# 自定义格式字符串（strftime 格式）
+date_str = dt2str(datetime.now(), "%Y年%m月%d日")  # '2024年01月01日'
+```
+
+#### 类型检查工具
+
+```python
+from lntools.timeutils import is_date_pd, is_date_pl
+import pandas as pd
+import polars as pl
+
+# 检查 Pandas Series 是否为日期类型
+df_pd = pd.DataFrame({"dt": pd.date_range("2024-01-01", periods=10)})
+is_date_pd(df_pd["dt"])  # True
+
+# 检查 Polars DataFrame/Series 列是否为日期类型
+df_pl = pl.DataFrame({"dt": pl.date_range(pl.date(2024, 1, 1), pl.date(2024, 1, 10), "1d")})
+is_date_pl(df_pl, "dt")  # True
+is_date_pl(df_pl["dt"])  # True (传入 Series)
+```
+
+#### 性能计时装饰器
+
+```python
+from lntools.timeutils import timer
+import time
+
+# 基础用法：函数耗时超过阈值时打印
+@timer(msg="Data Processing", threshold=3.0)
+def process_data():
+    time.sleep(5)
+    return "done"
+
+process_data()  # 输出: [Data Processing] 耗时: 5.00s
+
+# 自定义报告函数和计时方式
+import logging
+logger = logging.getLogger(__name__)
+
+@timer(
+    msg="Heavy Computation",
+    reporter=logger.info,           # 使用 logger 输出
+    threshold=1.0,
+    process_time=True               # 使用 CPU 时间而非墙钟时间
+)
+def compute():
+    # 复杂计算逻辑
+    pass
 ```
 
 ---
@@ -180,19 +231,15 @@ make_dirs("/path/to/new/directory")
 
 ```python
 from lntools import move, rename, remove, file_time
+from pathlib import Path
+import shutil
 
-# 移动文件（默认复制）
-move("source.txt", "destination/", keep_old=True)
-
-# 移动文件（删除原文件）
-move("source.txt", "destination/", keep_old=False)
-
-# 重命名
-rename("old_name.txt", "new_name.txt")
-
-# 删除文件或目录
-remove("file.txt")
-remove("directory/")
+# 使用 lntools 函数
+move("source.txt", "destination/", keep_old=True)   # 复制
+move("source.txt", "destination/", keep_old=False)  # 移动
+rename("old_name.txt", "new_name.txt")              # 重命名
+remove("file.txt")                                  # 删除文件
+remove("directory/")                                # 删除目录
 
 # 获取文件时间
 mtime = file_time("file.txt", method='m')  # 修改时间
@@ -204,6 +251,7 @@ ctime = file_time("file.txt", method='c')  # 创建时间
 
 ```python
 from lntools import get_all, get_files, get_dirs
+from pathlib import Path
 
 # 获取所有路径
 all_paths = get_all("/path/to/directory")
@@ -219,6 +267,7 @@ dirs = get_dirs("/path/to/directory")
 
 ```python
 from lntools import read_file, read_directory
+import pandas as pd
 
 # 读取单个文件（自动识别格式）
 df = read_file("data.csv", df_lib="polars")
@@ -232,60 +281,41 @@ df = read_directory(
     threads=10
 )
 
-# 按日期范围读取（需要文件名包含日期）
+# 按日期范围读取（使用自然日期）
 df = read_directory(
     path="/path/to/data",
     sdt="2024-01-01",
     edt="2024-01-31",
     file_pattern="{date}.csv",
     date_format="%Y-%m-%d",
-    df_lib="polars"
+    engine="polars"
 )
-```
 
-#### File 类
-
-```python
-from lntools import File
-
-# 创建 File 对象
-f = File("path/to/data.csv")
-
-# 属性
-print(f.path)       # 绝对路径
-print(f.directory)  # 父目录
-print(f.basename)   # 文件名（含扩展名）
-print(f.filename)   # 文件名（不含扩展名）
-print(f.extension)  # 扩展名
-
-# 读取文件
-data = f.read(df_lib="polars")
-
-# 文件操作
-f.cp("backup/")     # 复制
-f.mv("archive/")    # 移动
-f.rm()              # 删除
-```
-
-#### Directory 类
-
-```python
-from lntools import Directory
-
-# 创建 Directory 对象
-d = Directory("/path/to/data", threads=10)
-
-# 读取整个目录
-data = d.read(lib="polars")
-
-# 按日期范围读取
-data = d.read(
+# 按交易日读取（提供自定义日期列表）
+trading_days = [
+    pd.Timestamp("2024-01-02"),
+    pd.Timestamp("2024-01-03"),
+    pd.Timestamp("2024-01-04")
+]
+df = read_directory(
+    path="/path/to/data",
     sdt="2024-01-01",
     edt="2024-01-31",
+    trading_dates=trading_days,
     file_pattern="{date}.parquet",
-    date_format="%Y-%m-%d",
-    use_tcal=True,
-    lib="polars"
+    date_format="%Y%m%d",
+    engine="polars",
+    threads=20
+)
+
+# 使用自定义读取函数
+def custom_reader(path):
+    return pl.read_csv(path, separator="|", ignore_errors=True)
+
+df = read_directory(
+    path="/path/to/data",
+    reader=custom_reader,
+    threads=10
 )
 ```
 
@@ -429,11 +459,9 @@ try:
         .add_attachments(["report.pdf"])  # 如果文件不存在，会抛出 FileNotFoundError
         .sendmail()
     )
-    
     if not success:
         # 发送失败（认证错误、连接超时等）
         print("邮件发送失败，请检查日志获取详细错误信息")
-
 except FileNotFoundError as e:
     print(f"附件文件未找到: {e}")
 except MailPlusError as e:
@@ -503,6 +531,103 @@ notifier.send("post", post_content)
 - `purple` - 紫色
 - `indigo` - 靛蓝
 - `grey` - 灰色
+
+#### WeComNotifier 类
+
+企业微信机器人通知工具，支持文本、Markdown、图片、图文、文件和模板卡片消息。
+
+```python
+from lntools.bot.notify import WeComNotifier
+
+# 创建通知器实例
+webhook_url = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxxxx"
+notifier = WeComNotifier(
+    webhook=webhook_url,
+    timeout=10,
+    retries=3
+)
+
+# 1. 发送文本消息
+notifier.send_text("任务执行完成！")
+
+# 2. 文本消息 + @提及
+notifier.send_text(
+    "紧急告警：系统异常",
+    mentioned_list=["@all"],  # @所有人
+    mentioned_mobile_list=["13812345678"]  # @指定手机号
+)
+
+# 3. 发送 Markdown 消息
+notifier.send_markdown("""
+## 日报总结
+**日期**: 2026-01-13
+**状态**: <font color="info">正常</font>
+**详情**:
+- 任务1：已完成
+- 任务2：进行中
+> 查看[详细报告](https://example.com)
+""")
+
+# 4. 发送图文消息
+articles = [
+    {
+        "title": "市场日报",
+        "description": "2026-01-13市场摘要",
+        "url": "https://example.com/report",
+        "picurl": "https://example.com/cover.jpg"
+    }
+]
+notifier.send_news(articles)
+
+# 5. 发送图片消息
+import base64
+import hashlib
+
+with open("chart.png", "rb") as f:
+    img_data = f.read()
+img_base64 = base64.b64encode(img_data).decode()
+img_md5 = hashlib.md5(img_data).hexdigest()
+notifier.send_image(img_base64, img_md5)
+
+# 6. 发送模板卡片（简化版）
+notifier.send_text_notice_card(
+    title="任务完成通知",
+    description="数据处理任务已完成",
+    emphasis_title="100%",
+    emphasis_desc="完成率",
+    url="https://example.com/details",
+    fields=[
+        {"keyname": "记录数", "value": "1,500,000"},
+        {"keyname": "耗时", "value": "5分32秒"}
+    ]
+)
+
+# 7. 发送模板卡片（完整版）
+card_data = {
+    "source": {
+        "icon_url": "https://example.com/icon.png",
+        "desc": "数据管道"
+    },
+    "main_title": {
+        "title": "任务完成",
+        "desc": "数据处理成功完成"
+    },
+    "emphasis_content": {
+        "title": "100%",
+        "desc": "完成率"
+    },
+    "sub_title_text": "2026-01-13 10:00:00",
+    "horizontal_content_list": [
+        {"keyname": "记录数", "value": "1,500,000"},
+        {"keyname": "耗时", "value": "5分32秒"}
+    ],
+    "card_action": {
+        "type": 1,
+        "url": "https://example.com/details"
+    }
+}
+notifier.send_template_card("text_notice", card_data)
+```
 
 ---
 
@@ -650,51 +775,108 @@ connection_string = (
 
 ### 4.6 📝 日志记录 (log)
 
-基于 Rich 的美化日志输出工具。
+基于 Rich 的美化日志输出工具，支持配置化管理和动态handler控制。
 
-#### Logger 类的使用
+#### 基础用法
 
 ```python
 from lntools import Logger
 
-# 创建日志记录器（仅控制台输出）
+# 简单控制台日志
 log = Logger("my_module")
+log.info("Application started")
 
-# 同时输出到控制台和文件
+# 控制台 + 文件输出
 log = Logger(
-    "my_module",
+    module_name="my_module",
     output_method=["console", "file"],
     file="app.log",
     level="info",
     rich=True
 )
 
-# 记录不同级别的日志
-log.debug("调试信息")
-log.info("普通信息")
-log.warning("警告信息")
-log.error("错误信息")
+# 所有日志级别
+log.debug("Debug info")
+log.info("Normal message")
+log.warning("Warning message")
+log.error("Error occurred")
+log.critical("System failure")
 
-# 设置日志级别
+# 异常日志（自动记录traceback）
+try:
+    risky_operation()
+except Exception:
+    log.exception("Operation failed")
+
+# 运行时调整级别
 log.set_level("debug")
 ```
 
-#### 日志级别
+#### 统一配置（推荐）
 
-- `debug` - 调试信息
-- `info` - 普通信息（默认）
-- `warning` - 警告信息
-- `error` - 错误信息
-- `critical` - 严重错误
+使用 `LogConfig` 实现项目级别的配置复用：
+
+```python
+from lntools import Logger, LogConfig
+from pathlib import Path
+
+# 定义项目统一配置
+PROJECT_CONFIG = LogConfig(
+    datetime_format='%Y-%m-%d %H:%M:%S.%f',
+    file_format='[%(asctime)s][%(name)s][%(levelname)s] %(message)s',
+    default_level='info',
+    default_rich=True,
+    default_log_dir=Path('./logs')
+)
+
+# 各模块使用相同配置
+strategy_log = Logger("strategy", config=PROJECT_CONFIG)
+execution_log = Logger("execution", config=PROJECT_CONFIG)
+risk_log = Logger("risk", config=PROJECT_CONFIG)
+```
+
+#### 动态Handler管理
+
+```python
+import logging
+from logging.handlers import SysLogHandler
+
+log = Logger("app", output_method="console")
+
+# 运行时添加自定义handler
+syslog = SysLogHandler(address='/dev/log')
+log.add_handler("syslog", syslog)
+
+# 移除handler
+log.remove_handler("console")
+
+# 查看所有handler
+print(log.get_handlers())  # {'syslog': <SysLogHandler>}
+```
+
+#### 高性能场景
+
+```python
+# 高频交易/数据处理：禁用rich格式提升性能
+HFT_CONFIG = LogConfig(
+    default_rich=False,          # 关键：禁用rich降低overhead
+    default_level='warning',     # 只记录重要信息
+    console_format='%(asctime)s|%(levelname)s|%(message)s'
+)
+
+log = Logger("hft_engine", config=HFT_CONFIG)
+```
 
 ---
 
 ### 4.7 🖥️ 命令行工具 (CLI)
 
-简化的命令行参数解析工具。
+简化的命令行参数解析工具，基于 argparse 封装，提供更简洁的 API 和字典返回值。
+
+#### 基础用法
 
 ```python
-from lntools import CLI
+from lntools.utils.cli import CLI
 
 # 创建 CLI 对象
 cli = CLI()
@@ -705,87 +887,249 @@ cli.add("--age", "-a", type=int, default=0, help="年龄")
 cli.add("--verbose", "-v", action="store_true", help="详细输出")
 cli.add("--output", "-o", type=str, choices=["json", "csv"], help="输出格式")
 
-# 解析参数
+# 解析参数并返回字典
 args = cli.get()
 
 print(f"姓名: {args['name']}")
 print(f"年龄: {args['age']}")
 print(f"详细模式: {args['verbose']}")
+print(f"输出格式: {args.get('output', 'default')}")
+```
+
+#### Action 参数类型
+
+`action` 参数定义了参数的行为模式：
+
+```python
+from lntools.utils.cli import CLI
+
+cli = CLI()
+
+# store: 存储输入值（默认行为）
+cli.add("--config", action="store", help="配置文件路径")
+
+# store_true/store_false: 布尔开关
+cli.add("--verbose", action="store_true", help="启用详细输出")
+cli.add("--quiet", action="store_false", help="禁用输出")
+
+# store_const: 存储常量值
+cli.add("--mode", action="store_const", const="production", help="生产模式")
+
+# append: 多次指定累积到列表
+cli.add("--include", action="append", help="包含的模块（可多次指定）")
+# 使用: python script.py --include math --include numpy --include pandas
+# 结果: args['include'] = ['math', 'numpy', 'pandas']
+
+# append_const: 追加常量到列表
+cli.add("--with-cache", action="append_const", const="cache", dest="features")
+cli.add("--with-log", action="append_const", const="logging", dest="features")
+# 使用: python script.py --with-cache --with-log
+# 结果: args['features'] = ['cache', 'logging']
+
+# count: 计数（常用于 -vvv 形式）
+cli.add("-v", "--verbose", action="count", default=0, help="详细级别")
+# 使用: python script.py -vvv
+# 结果: args['verbose'] = 3
+
+args = cli.get()
+```
+
+#### Nargs 参数 - 多值参数
+
+`nargs` 参数控制参数接受的值的数量：
+
+```python
+from lntools.utils.cli import CLI
+
+cli = CLI()
+
+# nargs='?': 可选单个值
+cli.add("--log", nargs="?", const="INFO", default="WARNING", help="日志级别")
+# 使用: python script.py --log DEBUG  → args['log'] = 'DEBUG'
+# 使用: python script.py --log        → args['log'] = 'INFO' (const)
+# 使用: python script.py              → args['log'] = 'WARNING' (default)
+
+# nargs='*': 零个或多个值（结果为列表）
+cli.add("--files", nargs="*", help="要处理的文件列表")
+# 使用: python script.py --files a.csv b.csv c.csv
+# 结果: args['files'] = ['a.csv', 'b.csv', 'c.csv']
+
+# nargs='+': 一个或多个值（至少一个）
+cli.add("--symbols", nargs="+", required=True, help="股票代码")
+# 使用: python script.py --symbols AAPL GOOGL MSFT
+# 结果: args['symbols'] = ['AAPL', 'GOOGL', 'MSFT']
+
+# nargs=<整数>: 指定数量的值
+cli.add("--point", nargs=2, type=float, help="坐标点 (x, y)")
+# 使用: python script.py --point 10.5 20.3
+# 结果: args['point'] = [10.5, 20.3]
+
+args = cli.get()
+```
+
+#### 处理未知参数
+
+使用 `allow_unknown=True` 可以接受未定义的参数而不报错：
+
+```python
+from lntools.utils.cli import CLI
+
+cli = CLI()
+cli.add("--known", type=str, help="已知参数")
+
+# 允许未知参数（适用于插件系统或动态参数）
+args = cli.get(allow_unknown=True)
+
+print(f"已知参数: {args['known']}")
+print(f"未知参数: {args['unknown']}")
+# 使用: python script.py --known value --unknown1 abc --unknown2 xyz
+# 结果: 
+#   args['known'] = 'value'
+#   args['unknown'] = ['--unknown1', 'abc', '--unknown2', 'xyz']
+```
+
+#### 错误处理
+
+```python
+from lntools.utils.cli import CLI, CLIError
+
+cli = CLI()
+
+try:
+    cli.add("--port", type=int, help="端口号")
+    args = cli.get()
+    
+    # 自定义验证
+    if args.get("port") and not (1024 <= args["port"] <= 65535):
+        raise CLIError("Port must be between 1024 and 65535", error_code=1)
+        
+except CLIError as e:
+    print(f"CLI Error: {e}")  # 输出: [Error 1] Port must be between 1024 and 65535
+    exit(e.error_code)
+```
+
+#### 实际应用示例
+
+##### 1. 数据处理脚本
+
+```python
+from lntools.utils.cli import CLI
+import polars as pl
+
+cli = CLI()
+cli.add("--input", "-i", nargs="+", required=True, help="输入文件路径")
+cli.add("--output", "-o", type=str, required=True, help="输出文件路径")
+cli.add("--format", choices=["csv", "parquet", "excel"], default="parquet")
+cli.add("--threads", type=int, default=4, help="并行线程数")
+cli.add("-v", "--verbose", action="count", default=0, help="详细级别")
+
+args = cli.get()
+
+# 根据详细级别设置日志
+log_level = ["ERROR", "WARNING", "INFO", "DEBUG"][min(args['verbose'], 3)]
+print(f"Log Level: {log_level}")
+
+# 处理多个输入文件
+for file_path in args['input']:
+    df = pl.read_csv(file_path)
+    # 处理数据...
+    
+print(f"Data saved to {args['output']} as {args['format']}")
+```
+
+##### 2. 回测工具
+
+```python
+from lntools.utils.cli import CLI
+from lntools.timeutils import to_timestamp
+
+cli = CLI()
+cli.add("--symbols", nargs="+", required=True, help="股票代码列表")
+cli.add("--start", type=str, required=True, help="开始日期 (YYYY-MM-DD)")
+cli.add("--end", type=str, required=True, help="结束日期 (YYYY-MM-DD)")
+cli.add("--initial-capital", type=float, default=100000.0, help="初始资金")
+cli.add("--strategy", choices=["momentum", "mean_reversion"], required=True)
+cli.add("--dry-run", action="store_true", help="仅模拟运行")
+cli.add("--debug", action="store_true", help="调试模式")
+
+args = cli.get()
+
+# 日期验证
+start_dt = to_timestamp(args['start'])
+end_dt = to_timestamp(args['end'])
+
+if start_dt >= end_dt:
+    print("Error: Start date must be before end date")
+    exit(1)
+
+print(f"Backtesting {len(args['symbols'])} symbols from {args['start']} to {args['end']}")
+print(f"Strategy: {args['strategy']}, Initial Capital: ${args['initial_capital']:,.2f}")
+
+if args['dry_run']:
+    print("[DRY RUN] No actual execution")
 ```
 
 ---
 
 ### 4.8 🎨 人性化格式化 (human)
 
-提供各种数据的人性化显示格式。
+提供各种数据的人性化显示格式，优化日志和 CLI 输出体验。
 
-#### 路径格式化
+#### 基础格式化
 
 ```python
-from lntools import path
+from lntools import path, unit, bytes_size, sec2str, datetime_str
 
-# 显示相对路径（如果在当前目录下）
+# 路径 (自动简化为相对路径)
 print(path("/home/user/project/data.csv"))
+
+# 数值单位 (支持自动复数和自动缩放)
+print(unit(5, "apple"))                     # '5 apples'
+print(unit(1500, "user", auto_scale=True))  # '1.5K users'
+
+# 字节大小
+print(bytes_size(1024**3 * 1.5))            # '1.5 GB'
+
+# 时间间隔 (支持微秒、自动省略次要单位)
+print(sec2str(0.0005))      # '500µs'
+print(sec2str(3665))        # '1 hr 1 min'
+
+# 日期时间
+print(datetime_str("today", "compact"))     # '20240112'
 ```
 
-#### 单位格式化
+#### 集合展示
 
 ```python
-from lntools import unit
+from lntools import lists, ranges
 
-print(unit(1, "apple"))           # '1 apple'
-print(unit(5, "apple"))           # '5 apples'
-print(unit(3.141, "meter", 2))    # '3.14 meters'
-```
+# 列表预览 (支持截断显示)
+items = [1, 2, 3, 4, 5]
+print(lists(items, n=3))      # '[1, 2, 3] (& 2 others)'
 
-#### 时间格式化
-
-```python
-from lntools import sec2str
-
-print(sec2str(3.14))      # '3.1416s'
-print(sec2str(65))        # '1 min 5 s'
-print(sec2str(3661))      # '1 hours 1 min'
-```
-
-#### 列表格式化
-
-```python
-from lntools import lists
-
-items = [1, 2, 3, 4, 5, 6, 7]
-print(lists(items, n=3))  # '[1, 2, 3] (& 4 others)'
-```
-
-#### 日期范围格式化
-
-```python
-from lntools import ranges, get
-
-dates = get("2024-01-01", "2024-01-31")
-print(ranges(dates))
-# 输出: '2024/01/01 ~ 2024/01/31 (31 days, 1M0D)'
-```
-
-#### 日期时间格式化
-
-```python
-from lntools import datetime
-
-print(datetime("2024-01-01", "standard"))  # '2024/01/01'
-print(datetime("2024-01-01", "compact"))   # '20240101'
-print(datetime("2024-01-01", "wide"))      # '2024-01-01'
+# 日期范围描述
+dates = ["2024-01-01", "2024-02-01"]
+print(ranges(dates))          # '2024-01-01 ~ 2024-02-01 (32 days, 32D)'
 ```
 
 #### 进度跟踪
 
 ```python
-from lntools import track
+from lntools import track_simple, RichProgressManager
+import time
 
-# 使用 Rich 进度条
-for item in track(range(100), msg="处理中"):
-    # 处理 item
-    pass
+# 1. 基础用法 (基于 tqdm，无依赖时回退到文本)
+for i in track_simple(50, msg="Processing"):
+    time.sleep(0.01)
+
+# 2. 高级用法 (基于 Rich，支持嵌套与并发)
+with RichProgressManager(remove_task_on_finish=True) as rpm:
+    # 嵌套循环
+    for epoch in rpm.track(3, msg="Epochs"):
+        for batch in rpm.track(10, msg=f"Batch {epoch}"):
+            time.sleep(0.05)
+
+    # 并发支持：只需将 rpm 对象传递给子线程中调用 rpm.track() 即可
 ```
 
 #### 刷新打印
@@ -793,7 +1137,7 @@ for item in track(range(100), msg="处理中"):
 ```python
 from lntools import fprint
 
-# 在同一行刷新输出（用于进度显示）
+# 在同一行刷新输出（简易进度显示）
 for i in range(100):
     fprint(f"进度: {i+1}/100")
 ```
@@ -837,8 +1181,7 @@ from lntools import (
     SeriesLike,
     DatetimeLike,
     DataFrameLike,
-    PathLike,
-    PolarsDate
+    PathLike
 )
 
 # 在函数签名中使用类型提示
@@ -860,7 +1203,6 @@ def process_data(
   - `str`: 例如 `"2024-01-01"` 或 `"today"`
 - `DataFrameLike` - 数据框类型（pd.DataFrame, pl.DataFrame, pl.LazyFrame）
 - `PathLike` - 路径类型（str, Path）
-- `PolarsDate` - Polars 日期类型（pl.Datetime, pl.Date, pl.Time）
 
 ---
 
@@ -885,17 +1227,13 @@ lntools/
 │   └── utils/                # 工具集模块
 │       ├── __init__.py
 │       ├── cli.py            # CLI 工具
-│       ├── columns.py        # 列操作工具
-│       ├── decorator.py      # 装饰器
-│       ├── directory.py      # Directory 类
-│       ├── file.py           # File 类
 │       ├── filesystem.py     # 文件系统操作
 │       ├── human.py          # 人性化格式化
 │       ├── log.py            # 日志工具
 │       ├── misc.py           # 其他工具
 │       └── typing.py         # 类型定义
 ├── tests/                    # 测试文件
-├── setup.py                  # 安装配置
+├── pyproject.toml            # 安装配置
 ├── README.md                 # 项目文档
 ├── .flake8                   # Flake8 配置
 └── .pylintrc                 # Pylint 配置

@@ -48,28 +48,21 @@ def test_mail():
 
 
 def test_timeutils():
-    from lntools.timeutils import (
-        adjust, diff, get, now, day_of_week,
-        str2dt, str2ts, ts2dt, ts2str, dt2str, dt2ts,
-    )
+    from lntools.timeutils import adjust, day_of_week, diff, dt2str, get_range, to_timestamp, ts2str
 
     pprint(adjust("today"))
-    pprint(get(20240601, "today"))
-    pprint(diff(20240601, "today"))
-    pprint(now())
+    pprint(get_range(20260101, "today"))
+    pprint(diff(20260101, "today"))
     pprint(day_of_week())
-    pprint(str2dt("today"))
-    pprint(str2ts("today"))
-    pprint(dt2str(now(), "standard"))
-    pprint(dt2ts(now()))
+    pprint(dt2str(to_timestamp("today"), "standard"))
+    pprint(to_timestamp("today"))
     import time
-    pprint(ts2dt(time.time()))
     pprint(ts2str(time.time(), "wide"))
-    pprint(adjust("20240601"))
+    pprint(adjust("20260101"))
 
 
 def test_cli():
-    from lntools import CLI
+    from lntools.utils import CLI
     cli = CLI()
     cli.add("-p", "--portfolio", type=int, nargs="+", action="store", required=True, help="portfolio id")
     cli.add("-m", "--money", type=float, nargs="+", action="store", required=True, help="initial money")
@@ -89,37 +82,46 @@ def test_cli():
     pprint(cli.get())
 
 
-def test_directory():
-    from lntools.utils.directory import Directory
-    d = Directory("/home/lin/data/quote/etfdaily")
-    read_params = {"lib": "polars", "file_pattern": "{date}.parquet", "date_format": "%Y%m%d", "use_tcal": True}
-    pprint(d.read(sdt="2023-12-28", edt="2024-01-05", **read_params))
-
-
 def test_fliesystem():
     from pathlib import Path
-    from lntools.utils.filesystem import (
-        is_dir, is_file, handle_path, read_file,
-        make_dirs, move, rename, remove, file_time, 
-        get_all, get_files, get_dirs, read_directory
+
+    from lntools.utils import (
+        file_time,
+        get_all,
+        get_dirs,
+        get_files,
+        handle_path,
+        is_dir,
+        is_file,
+        make_dirs,
+        move,
+        read_directory,
+        read_file,
     )
-    sysroot = Path.home()
-    pprint(is_dir(Path(sysroot, "data", "wind")))
-    pprint(is_file(Path(sysroot, "data", "wind", "AShareSEO.parquet")))
-    pprint(handle_path(Path(sysroot, "data", "quote", "stockinfo", "20240105.parquet")))
-    pprint(read_file(Path(sysroot, "data", "quote", "stockinfo", "20240105.parquet")))
-    pprint(make_dirs(Path(sysroot, "data", "quote", "px1")))
-    pprint(move(Path(sysroot, "data", "quote", "stockinfo", "20240105.parquet"), Path(sysroot, "data", "quote", "px1")))
-    pprint(move(Path(sysroot, "data", "quote", "px1"), Path(sysroot, "data"), keep_old=False, exist_ok=True))
-    pprint(rename(Path(sysroot, "data", "px1"), Path(sysroot, "data", "px")))
-    pprint(file_time(Path(sysroot, "data", "quote", "stockinfo", "20240105.parquet")))
-    pprint(get_all(Path("/home/lin/data/factor")))
-    pprint(get_files(Path("/home/lin/data/factor/QIML/2023-05")))
-    pprint(get_dirs(Path("/home/lin/data/factor/QIML")))
-    remove(Path(sysroot, "data", "px", "20240105.parquet"))
-    remove(Path(sysroot, "data", "px"))
-    pprint(read_directory(Path("/home/lin/data/quote/etfdaily"),
-                          sdt="2023-12-28", edt="2024-01-05", date_format="%Y%m%d", file_pattern="{date}.parquet"))
+    sysroot = "E:\\data"
+    pprint(is_dir(Path(sysroot, "ricequant")))
+    pprint(is_file(Path(sysroot, "ricequant", "all_instruments_CS.parquet")))
+    pprint(handle_path(Path(sysroot, "ricequant", "quote", "stockinfo", "CS.parquet")))
+    pprint(read_file(Path(sysroot, "ricequant", "all_instruments", "CS.parquet")))
+    pprint(make_dirs(Path(sysroot, "ricequant", "quote")))
+    pprint(move(Path(sysroot, "ricequant", "all_instruments", "CS.parquet"), Path(sysroot, "ricequant", "quote")))
+    # pprint(move(Path(sysroot, "ricequant", "quote", "px1"),
+    #   Path(sysroot, "ricequant"), keep_old=False, exist_ok=True))
+    # pprint(rename(Path(sysroot, "ricequant", "px1"), Path(sysroot, "ricequant", "px")))
+    pprint(file_time(Path(sysroot, "ricequant", "all_instruments", "CS.parquet")))
+    pprint(get_all(Path("E:\\data\\ricequant\\all_instruments")))
+    pprint(get_files(Path("E:\\data\\ricequant\\all_instruments")))
+    pprint(get_dirs(Path("E:\\data\\ricequant")))
+    # remove(Path(sysroot, "data", "px", "20240105.parquet"))
+    # remove(Path(sysroot, "data", "px"))
+    dates = ['2023-12-28', '2024-01-02', '2024-01-03', '2024-01-04', '2024-01-05']
+    pprint(
+        read_directory(
+            Path(r"E:\data\ricequant\daybar+info\日线数据\股票"),
+            sdt="2023-12-28", edt="2024-01-05", date_format="%Y-%m-%d", file_pattern="{date}.parquet",
+            trading_dates=dates
+        )
+    )
 
 
 def test_human():
@@ -131,28 +133,46 @@ def test_human():
     # ranges,
     # datetime
     """
-    from lntools import (
-        path, unit, sec2str, lists, ranges, datetime
-    )
+    from lntools.utils import datetime_str, lists, path, ranges, sec2str, unit
     pprint(path("~/data/quote/stockinfo"))
     pprint(unit(3.141, "second", decimal=2))
     pprint(sec2str(1024))
     pprint(lists([1, 2, 3, 4, 5, 6, 7, 8, 9, 0]))
     pprint(ranges(pd.date_range("2021-01-01", "2022-01-10", freq="D").to_list()))
-    pprint(datetime("today", "wide"))
+    pprint(datetime_str("today", "wide"))
 
 
 def test_track():
-    from time import sleep
-    from lntools import track, fprint
-    for i in track(range(100), msg="test enumerate"):
-        fprint(i)
-        sleep(0.1)
+    from concurrent.futures import ThreadPoolExecutor
+    import time
+
+    from lntools.utils import RichProgressManager, track_simple
+    for _ in track_simple(50, msg="test enumerate"):
+        # fprint(i)
+        time.sleep(0.02)
+
+    with RichProgressManager() as rpm:
+        for _ in rpm.track(50, msg="Rich progress manager test"):
+            time.sleep(0.02)
+
+    def worker(job_id: int, manager: RichProgressManager):
+        total_steps = 50
+        delay = 0.05 + (job_id * 0.01)
+
+        # 演示任务完成后移除进度条的效果
+        for _ in manager.track(total_steps, msg=f"[cyan]Worker-{job_id} downloading"):
+            time.sleep(delay)
+
+    # 开启 remove_task_on_finish=True，看下动态移除效果
+    with RichProgressManager(remove_task_on_finish=True) as rpm, ThreadPoolExecutor(max_workers=4) as executor:
+        futures = [executor.submit(worker, i, rpm) for i in range(1, 5)]
+        for f in futures:
+            f.result()
 
 
 def test_log():
-    from lntools import Logger, handle_path
-    log_path = handle_path("~/project/test1.log")
+    from lntools.utils import Logger, handle_path
+    log_path = handle_path("E://temp/test1.log")
     log = Logger(
         module_name="test",
         output_method=["console", "file"],
@@ -169,11 +189,10 @@ def test_log():
 
 
 if __name__ == '__main__':
-    test_mail()
+    # test_mail()
     # test_timeutils()
     # test_cli()
-    # test_directory()
     # test_fliesystem()
     # test_human()
     # test_track()
-    # test_log()
+    test_log()

@@ -1,4 +1,5 @@
 from .api import (
+    SHORTCUTS,
     adjust,
     day_of_week,
     diff,
@@ -9,9 +10,7 @@ from .api import (
     timer,
     to_timestamp,
     ts2str,
-    SHORTCUTS,
 )
-
 
 __all__ = [
     "adjust",

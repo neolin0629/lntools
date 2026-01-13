@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import argparse
-from typing import Dict, Any
+from typing import Any
 
 
 class CLIError(Exception):
@@ -31,7 +31,7 @@ class CLI:
         """
         self.parser = argparse.ArgumentParser(description="Command-Line Interface Utility")
 
-    def add(self, *args, **kwargs) -> None:
+    def add(self, *args: Any, **kwargs: Any) -> None:
         """Add an argument to the parser.
 
         Args
@@ -65,7 +65,7 @@ class CLI:
         except argparse.ArgumentError as e:
             raise CLIError(f"Failed to add argument: {e}") from e
 
-    def get(self, allow_unknown: bool = False) -> Dict[str, Any]:
+    def get(self, allow_unknown: bool = False) -> dict[str, Any]:
         """Parse command line arguments and return as dictionary.
 
         Args:
