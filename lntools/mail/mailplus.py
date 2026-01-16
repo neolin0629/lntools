@@ -404,7 +404,7 @@ class MailPlus:
             raise ValueError(f"Invalid configuration: {str(e)}") from e
 
     @property
-    def help(self):
+    def help(self) -> str:
         return """
         The properties of `mailplus`, write in `~/.cache/np/lntools/mail.ini`:
 

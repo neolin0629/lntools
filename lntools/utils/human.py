@@ -15,9 +15,13 @@ from collections.abc import Callable, Generator, Iterable, Sequence, Sized
 from datetime import timedelta
 from pathlib import Path
 import threading
-from typing import Any, TypeAlias, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeAlias, TypeVar, cast
 
-from lntools.utils.typing import DatetimeLike
+from .typing import DatetimeLike
+
+if TYPE_CHECKING:
+    from rich.progress import Progress
+
 
 T = TypeVar('T')
 Reporter: TypeAlias = Callable[[str], None]
@@ -284,7 +288,7 @@ def datetime_str(d: DatetimeLike, method: str = "standard") -> str:
     try:
         dt = adjust(d)
         fmt = SHORTCUTS.get(method, method)
-        return dt.strftime(fmt)
+        return dt.strftime(fmt)  # type: ignore[no-any-return]
     except (ValueError, TypeError):
         return str(d)
 
@@ -366,14 +370,14 @@ class RichProgressManager:
         report_every: int = 100,
         remove_task_on_finish: bool = False,
     ):
-        self.progress = None
+        self.progress: Progress | None = None
         self.transient = transient
         self.reporter = reporter
         self.report_every = report_every
         self.remove_task_on_finish = remove_task_on_finish
         self._lock = threading.Lock()
 
-    def __enter__(self):
+    def __enter__(self) -> RichProgressManager:
         try:
             from rich.progress import (
                 BarColumn,
@@ -404,7 +408,7 @@ class RichProgressManager:
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: Any | None,
-    ):
+    ) -> None:
         if self.progress:
             self.progress.stop()
 

@@ -11,7 +11,7 @@ class CLIError(Exception):
         self.error_code = error_code
         super().__init__(self.message)
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.error_code:
             return f"[Error {self.error_code}] {self.message}"
         return self.message

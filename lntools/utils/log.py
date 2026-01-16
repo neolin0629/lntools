@@ -253,7 +253,7 @@ class Logger:
             Configured console handler (RichHandler or StreamHandler)
         """
         if rich:
-            handler = RichHandler(
+            handler: logging.Handler = RichHandler(
                 show_path=False,
                 rich_tracebacks=True,
                 markup=True,  # 允许rich标记

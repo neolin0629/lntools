@@ -110,3 +110,19 @@ exclude = [
     "**/.github",
     "**/.vscode"
 ]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true     # 警告返回 Any 类型的函数
+warn_unused_configs = true # 警告未使用的配置选项
+ignore_missing_imports = true  # 忽略没有类型提示的第三方库
+check_untyped_defs = true      # 检查没有类型声明的函数体
+disallow_untyped_defs = true  # 不允许没有类型声明的函数定义
+
+[[tool.mypy.overrides]]
+module = [
+    "requests.*",
+    "yaml.*",
+]
+ignore_missing_imports = true
+

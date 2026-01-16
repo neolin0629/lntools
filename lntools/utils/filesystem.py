@@ -1,6 +1,7 @@
 from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
+import os
 from pathlib import Path
 import shutil
 from typing import Any, TypeVar
@@ -132,14 +133,14 @@ def remove(path: PathLike) -> None:
 
 def file_time(file_path: PathLike, method: str = 'm') -> datetime:
     """
-    Get file's timestamp.
+    Get file's timestamp (cross-platform).
 
     Args:
         file_path: The file path to check
         method: Time type to return:
             'a' - last accessed time
             'm' - last modified time
-            'c' - creation time
+            'c' - creation time (Windows) or metadata change time (Unix)
 
     Returns:
         datetime: Requested timestamp
@@ -152,13 +153,13 @@ def file_time(file_path: PathLike, method: str = 'm') -> datetime:
     if not path_obj.exists():
         raise FileNotFoundError(f"File does not exist: {file_path}")
 
-    stat = path_obj.stat()
+    path_str = str(path_obj)
     if method == 'a':
-        timestamp = stat.st_atime
+        timestamp = os.path.getatime(path_str)
     elif method == 'm':
-        timestamp = stat.st_mtime
+        timestamp = os.path.getmtime(path_str)
     elif method == 'c':
-        timestamp = stat.st_birthtime
+        timestamp = os.path.getctime(path_str)
     else:
         raise ValueError("Method must be one of 'a' (accessed), 'm' (modified), 'c' (created)")
 
@@ -210,7 +211,7 @@ def get_files(root: PathLike) -> list[Path]:
     return list_paths(root, files_only=True)
 
 
-READERS: dict[str, dict[str, Callable[..., Any]]] = {
+READERS: dict[str, dict[str, Callable[..., pd.DataFrame | pl.DataFrame | np.ndarray | str | bytes]]] = {
     "pandas": {
         ".csv": pd.read_csv,
         ".txt": pd.read_csv,
@@ -252,7 +253,7 @@ def load_data(
     file_path: str | Path,
     engine: str = "pandas",
     **kwargs: Any
-) -> Any:
+) -> pd.DataFrame | pl.DataFrame | np.ndarray | str | bytes:
     """
     统一数据加载接口，根据后缀自动选择 Reader。
 
@@ -388,7 +389,7 @@ def _get_formatted_files(
 
 def read_directory(
     path: PathLike,
-    reader: Callable[..., Any] | None = None,
+    reader: Callable[..., pd.DataFrame | pl.DataFrame | np.ndarray | str | bytes] | None = None,
     sdt: DatetimeLike | None = None,
     edt: DatetimeLike | None = None,
     file_pattern: str = "{date}.csv",
@@ -397,7 +398,7 @@ def read_directory(
     engine: str = "polars",
     threads: int = 10,
     **kwargs: Any
-) -> pd.DataFrame | pl.DataFrame:
+) -> pd.DataFrame | pl.DataFrame | np.ndarray | str | bytes:
     """
     Read and concatenate files from directory with optional date filtering.
 
@@ -461,8 +462,13 @@ def read_directory(
     def _read_file(f: Path) -> pd.DataFrame | pl.DataFrame:
         try:
             if reader is read_file:
-                return reader(f, engine=engine, **kwargs)
-            return reader(f, **kwargs)
+                result = reader(f, engine=engine, **kwargs)
+            else:
+                result = reader(f, **kwargs)
+            # Type guard: ensure result is DataFrame
+            if isinstance(result, (pd.DataFrame, pl.DataFrame)):
+                return result
+            raise TypeError(f"Reader returned unexpected type: {type(result).__name__}")
         except Exception as e:  # pylint: disable=broad-exception-caught
             log.error(f"Failed to read {f.name}: {e}")
             return pl.DataFrame() if engine == "polars" else pd.DataFrame()
@@ -482,7 +488,7 @@ def read_directory(
     # Concatenate results
     try:
         concatenated = (
-            pl.concat(results, how="vertical_relaxed")  # type: ignore[arg-type]
+            pl.concat(results, how="vertical_relaxed")  # type: ignore[type-var]
             if engine == "polars"
             else pd.concat(results, ignore_index=True)  # type: ignore[arg-type]
         )

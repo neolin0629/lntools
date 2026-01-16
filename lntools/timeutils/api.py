@@ -112,7 +112,7 @@ def day_of_week(dt: DatetimeLike = "today") -> int:
         int: 1 for Monday, 7 for Sunday.
     """
     # Pandas 的 dayofweek 范围是 0-6 (周一至周日)
-    return to_timestamp(dt).dayofweek + 1
+    return int(to_timestamp(dt).dayofweek + 1)
 
 
 def adjust(date: DatetimeLike, n: int = 0, date_only: bool = False) -> pd.Timestamp:
@@ -134,7 +134,7 @@ def diff(start_date: DatetimeLike, end_date: DatetimeLike) -> int:
     """
     s = to_timestamp(start_date, date_only=True)
     e = to_timestamp(end_date, date_only=True)
-    return (e - s).days
+    return int((e - s).days)
 
 
 def get_range(
@@ -153,7 +153,7 @@ def get_range(
     if start > end:
         raise ValueError(f"Start date {start} cannot be later than end date {end}")
 
-    return pd.date_range(start, end, freq="D").tolist()
+    return pd.date_range(start, end, freq="D").tolist()  # type: ignore[no-any-return]
 
 
 def dt2str(d: datetime | pd.Timestamp, method: FormatMethod | str = "wide") -> str:
@@ -176,9 +176,9 @@ def is_date_pl(data: pl.DataFrame | pl.LazyFrame | pl.Series, col_name: str = "d
     if col_name not in data.schema:
         return False
 
-    return data.schema[col_name].is_temporal()
+    return bool(data.schema[col_name].is_temporal())
 
 
 def is_date_pd(series: pd.Series) -> bool:
     """Check if a Pandas Series is a datetime type."""
-    return pd.api.types.is_datetime64_any_dtype(series)
+    return bool(pd.api.types.is_datetime64_any_dtype(series))

@@ -4,7 +4,7 @@ import pandas as pd
 import polars as pl
 
 
-def test_config_utils():
+def test_config_utils() -> None:
     from lntools.config import read_pkg_ini
 
     config = read_pkg_ini("config/test.ini",)
@@ -27,7 +27,7 @@ def test_config_utils():
     #########
 
 
-def test_mail():
+def test_mail() -> None:
     df = pl.DataFrame({"a": [1, 2], "b": [3, 4]})
     from lntools.mail import MailPlus
     m = MailPlus()
@@ -47,7 +47,7 @@ def test_mail():
     pprint(success)
 
 
-def test_timeutils():
+def test_timeutils() -> None:
     from lntools.timeutils import adjust, day_of_week, diff, dt2str, get_range, to_timestamp, ts2str
 
     pprint(adjust("today"))
@@ -61,7 +61,7 @@ def test_timeutils():
     pprint(adjust("20260101"))
 
 
-def test_cli():
+def test_cli() -> None:
     from lntools.utils import CLI
     cli = CLI()
     cli.add("-p", "--portfolio", type=int, nargs="+", action="store", required=True, help="portfolio id")
@@ -82,7 +82,7 @@ def test_cli():
     pprint(cli.get())
 
 
-def test_fliesystem():
+def test_fliesystem() -> None:
     from pathlib import Path
 
     from lntools.utils import (
@@ -103,8 +103,10 @@ def test_fliesystem():
     pprint(is_file(Path(sysroot, "ricequant", "all_instruments_CS.parquet")))
     pprint(handle_path(Path(sysroot, "ricequant", "quote", "stockinfo", "CS.parquet")))
     pprint(read_file(Path(sysroot, "ricequant", "all_instruments", "CS.parquet")))
-    pprint(make_dirs(Path(sysroot, "ricequant", "quote")))
-    pprint(move(Path(sysroot, "ricequant", "all_instruments", "CS.parquet"), Path(sysroot, "ricequant", "quote")))
+    make_dirs(Path(sysroot, "ricequant", "quote"))
+    pprint(Path(sysroot, "ricequant", "quote").exists())
+    move(Path(sysroot, "ricequant", "all_instruments", "CS.parquet"), Path(sysroot, "ricequant", "quote"))
+    pprint(Path(sysroot, "ricequant", "quote", "CS.parquet").exists())
     # pprint(move(Path(sysroot, "ricequant", "quote", "px1"),
     #   Path(sysroot, "ricequant"), keep_old=False, exist_ok=True))
     # pprint(rename(Path(sysroot, "ricequant", "px1"), Path(sysroot, "ricequant", "px")))
@@ -124,7 +126,7 @@ def test_fliesystem():
     )
 
 
-def test_human():
+def test_human() -> None:
     """
     # path,
     # unit,
@@ -142,7 +144,7 @@ def test_human():
     pprint(datetime_str("today", "wide"))
 
 
-def test_track():
+def test_track() -> None:
     from concurrent.futures import ThreadPoolExecutor
     import time
 
@@ -155,7 +157,7 @@ def test_track():
         for _ in rpm.track(50, msg="Rich progress manager test"):
             time.sleep(0.02)
 
-    def worker(job_id: int, manager: RichProgressManager):
+    def worker(job_id: int, manager: RichProgressManager) -> None:
         total_steps = 50
         delay = 0.05 + (job_id * 0.01)
 
@@ -170,7 +172,7 @@ def test_track():
             f.result()
 
 
-def test_log():
+def test_log() -> None:
     from lntools.utils import Logger, handle_path
     log_path = handle_path("E://temp/test1.log")
     log = Logger(
