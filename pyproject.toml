@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lntools"
-version = "1.0.0"
+version = "1.0.1"
 description = "Development Assistance Tools"
 authors = [
     {name = "linnan", email = "lnonly@163.com"}
