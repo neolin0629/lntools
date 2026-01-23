@@ -6,7 +6,6 @@ Configuration API of lntools.
 from configparser import ConfigParser, ExtendedInterpolation
 from dataclasses import dataclass, fields, field
 from pathlib import Path
-from typing import Optional, Dict
 
 import importlib.resources
 from yaml import safe_dump, dump, safe_load, load, Loader
@@ -91,8 +90,8 @@ class Config:
     """
     Configuration dataclass for lntools.
     """
-    db: Optional[Dict[str, str]] = field(default_factory=dict)
-    mail: Optional[Dict[str, str]] = field(default=None)
+    db: dict[str, str] | None = field(default_factory=dict)
+    mail: dict[str, str] | None = field(default=None)
     df_lib: str = field(default="polars")
 
 
