@@ -1,28 +1,17 @@
-"""Command Line Interface utilities for argument parsing.
-
-This module provides a simplified wrapper around argparse with:
-- Type-safe argument handling
-- Enhanced error messages
-- Support for unknown arguments
-- Flexible argument configuration
-
-@author: Neo
-@date: 2024/6/9
-"""
 from __future__ import annotations
 
 import argparse
-from typing import Dict, Any
+from typing import Any
 
 
 class CLIError(Exception):
     """Custom exception for CLI-related errors."""
-    def __init__(self, message: str = None, error_code: int = None):
+    def __init__(self, message: str | None = None, error_code: int | None = None):
         self.message = message or "An error occurred in CLI"
         self.error_code = error_code
         super().__init__(self.message)
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.error_code:
             return f"[Error {self.error_code}] {self.message}"
         return self.message
@@ -42,7 +31,7 @@ class CLI:
         """
         self.parser = argparse.ArgumentParser(description="Command-Line Interface Utility")
 
-    def add(self, *args, **kwargs) -> None:
+    def add(self, *args: Any, **kwargs: Any) -> None:
         """Add an argument to the parser.
 
         Args
@@ -76,7 +65,7 @@ class CLI:
         except argparse.ArgumentError as e:
             raise CLIError(f"Failed to add argument: {e}") from e
 
-    def get(self, allow_unknown: bool = False) -> Dict[str, Any]:
+    def get(self, allow_unknown: bool = False) -> dict[str, Any]:
         """Parse command line arguments and return as dictionary.
 
         Args:

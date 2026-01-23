@@ -1,0 +1,128 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lntools"
+version = "1.0.1"
+description = "Development Assistance Tools"
+authors = [
+    {name = "linnan", email = "lnonly@163.com"}
+]
+requires-python = ">=3.12"
+dependencies = [
+    "numpy",
+    "pandas",
+    "polars",
+    "rich",
+    "pyyaml",
+    "pyarrow",
+    "requests",
+    "tqdm"
+]
+
+[tool.setuptools]
+zip-safe = false
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.setuptools.package-data]
+lntools = [
+    "config/*.yaml",
+    "config/*.ini"
+]
+
+[tool.ruff]
+# 目标 Python 版本
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+# 启用规则集合：
+# E/F: 标准错误 (Flake8)
+# I: 自动导入排序 (Isort) - 极其重要
+# B: 潜在 Bug (Bugbear)
+# SIM: 代码简化 (Simplify) - 提升执行效率
+# NPY: NumPy 专项规则 - 防止数值计算错误
+# UP: 语法现代化 (Pyupgrade) - 保持代码使用最新特性
+# PL: Pylint 部分规则 (可选，较严格)
+select = ["E", "F", "I", "B", "SIM", "NPY", "UP"]
+
+# 忽略规则：
+# E501: 行长过长 (交给 Formatter 自动处理，Linter 不报错)
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+# 将这些库识别为"第三方库"，确保 import 排序正确
+known-third-party = ["numpy", "pandas", "polars", "numba", "clickhouse_connect", "rich", "requests"]
+# import 排序分组
+section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
+# 将相对导入放在最后
+force-sort-within-sections = true
+
+[tool.ruff.lint.per-file-ignores]
+# 在 Notebook 中忽略某些规则 (如未使用的导入)
+"*.ipynb" = ["E402", "F401"]
+# 在 __init__.py 中允许未使用的导入 (通常用于暴露 API)
+"__init__.py" = ["F401", "F403"]
+# 测试文件中允许某些规则
+"tests/**/*.py" = ["F401", "F811"]
+
+[tool.pytest.ini_options]
+# 测试配置
+minversion = "7.0"
+# 自动发现测试文件
+testpaths = ["tests"]
+# 默认参数：
+# -v: 详细输出
+# -ra: 显示跳过/失败的原因
+# --durations=10: 列出最慢的 10 个测试 (用于性能优化)
+addopts = "-v -ra --durations=10"
+# 过滤器：将特定警告视为错误 (严格模式)
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+
+[tool.pyright]
+typeCheckingMode = "strict"
+# 允许导入没有类型存根 (.pyi) 的第三方库 (如 tushare, CTP 接口)
+# 如果不加这行，导入这些库时 import 语句会报错
+reportMissingTypeStubs = false
+
+# 忽略因为库定义缺失导致的 "Unknown" 类型
+# 解决 Pandas/Polars/Numpy 链式调用产生大量 Unknown 的问题
+reportUnknownArgumentType = false
+reportUnknownVariableType = false
+reportUnknownParameterType = false
+reportUnknownMemberType = false
+reportUnknownLambdaType = false
+
+# 允许我写 "多余" 的 isinstance 检查
+# 在实盘中，我不信任上游数据，即使 Type Hint 说它是 int，我也要 check 它是 int
+reportUnnecessaryIsInstance = false
+
+# 排除目录
+exclude = [
+    "**/node_modules",
+    "**/__pycache__",
+    "**/.git",
+    "**/.github",
+    "**/.vscode"
+]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true     # 警告返回 Any 类型的函数
+warn_unused_configs = true # 警告未使用的配置选项
+ignore_missing_imports = true  # 忽略没有类型提示的第三方库
+check_untyped_defs = true      # 检查没有类型声明的函数体
+disallow_untyped_defs = true  # 不允许没有类型声明的函数定义
+
+[[tool.mypy.overrides]]
+module = [
+    "requests.*",
+    "yaml.*",
+]
+ignore_missing_imports = true
+

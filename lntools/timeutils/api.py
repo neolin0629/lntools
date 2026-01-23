@@ -1,257 +1,184 @@
-"""Time utility functions for datetime handling and conversion.
-
-This module provides a collection of functions for:
-- DateTime conversion between different formats
-- Date calculations and adjustments
-- Type checking for datetime columns
-- Timestamp operations
-
-@author Neo
-@time 2024/6/8
-"""
-from datetime import datetime, timedelta
-from typing import List, Union, Optional, Literal
+from collections.abc import Callable
+from datetime import datetime
+import functools
+import time
+from typing import Literal, ParamSpec, TypeVar
 
 import pandas as pd
 import polars as pl
-from pandas.api.types import is_datetime64_any_dtype as is_date_pd  # pylint: disable=unused-import # noqa: F401
 
-from lntools.utils.decorator import timer  # pylint: disable=unused-import # noqa: F401
 from lntools.utils.typing import DatetimeLike
 
-# Constants
-DATE_STR_PATTERN: str = r'\d{4}(0[1-9]|1[0-2])(0[1-9]|[1-2][0-9]|3[0-1])'
+# ==========================================
+# 类型定义与常量
+# ==========================================
+P = ParamSpec("P")
+R = TypeVar("R")
 
-SHORTCUTS: dict[str, str] = {
-    "standard": '%Y/%m/%d',
-    "compact": '%Y%m%d',
-    "wide": '%Y-%m-%d',
-    "time": '%H:%M:%S',
-    "datetime": '%Y/%m/%d %H:%M:%S',
-}
+DATE_STR_PATTERN: str = r"\d{4}(0[1-9]|1[0-2])(0[1-9]|[1-2][0-9]|3[0-1])"
 
 FormatMethod = Literal["standard", "compact", "wide", "time", "datetime"]
 
+SHORTCUTS: dict[str, str] = {
+    "standard": "%Y/%m/%d",
+    "compact": "%Y%m%d",
+    "wide": "%Y-%m-%d",
+    "time": "%H:%M:%S",
+    "datetime": "%Y/%m/%d %H:%M:%S",
+}
 
-def now() -> datetime:
-    """Return current datetime with timezone information."""
-    return datetime.now()
+
+# ==========================================
+# 装饰器
+# ==========================================
+
+
+def timer(
+    msg: str,
+    reporter: Callable[[str], None] = print,
+    threshold: float = 3.0,
+    process_time: bool = False,
+) -> Callable[[Callable[P, R]], Callable[P, R]]:
+    """
+    Performance analysis decorator to measure execution time.
+
+    Args:
+        msg: Message prefix for the report.
+        reporter: Function to handle the output (defaults to print).
+        threshold: Minimum seconds to trigger reporting.
+        process_time: Use CPU process time if True, else wall-clock time.
+    """
+    timer_func = time.process_time if process_time else time.perf_counter
+
+    def decorator(func: Callable[P, R]) -> Callable[P, R]:
+        @functools.wraps(func)
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+            start_time = timer_func()
+            result = func(*args, **kwargs)
+            elapsed = timer_func() - start_time
+
+            if elapsed >= threshold:
+                time_str = f"{elapsed:.2f}s" if elapsed < 60 else f"{elapsed / 60:.2f}min"
+                reporter(f"[{msg}] 耗时: {time_str}")
+            return result
+
+        return wrapper
+
+    return decorator
+
+
+# ==========================================
+# 核心转换函数 (Internal)
+# ==========================================
+
+
+def to_timestamp(t: DatetimeLike, date_only: bool = False) -> pd.Timestamp:
+    """
+    Convert any date-like input to a pandas.Timestamp object.
+
+    Args:
+        t: Input date (Timestamp, datetime, string, or number).
+        date_only: If True, normalize to midnight.
+
+    Returns:
+        pd.Timestamp: The parsed timestamp object.
+    """
+    if isinstance(t, str) and t.lower() == "today":
+        ts = pd.Timestamp.now()
+    else:
+        try:
+            if isinstance(t, int) and t > 19000101:
+                # Assume YYYYMMDD format for large integers
+                ts = pd.to_datetime(str(t), format="%Y%m%d")
+            else:
+                # Let pandas handle str, float (epoch), datetime, etc.
+                ts = pd.to_datetime(t)
+        except Exception as e:
+            raise ValueError(f"Invalid datetime format: {t}") from e
+
+    return ts.normalize() if date_only else ts
+
+
+# ==========================================
+# 工具函数
+# ==========================================
 
 
 def day_of_week(dt: DatetimeLike = "today") -> int:
-    """Return the day of the week for a given date (Monday=1, Sunday=7).
-
-    Args:
-        dt: Date-like input. Defaults to "today".
-            Supported formats:
-            - datetime object
-            - pandas Timestamp
-            - string in format YYYYMMDD
-            - integer in format YYYYMMDD
-            - "today" literal
+    """
+    Get the day of the week for a given date.
 
     Returns:
-        int: Day of week (1=Monday through 7=Sunday)
-
-    Examples:
-        >>> day_of_week("today")
-        >>> day_of_week(datetime.now())
-        >>> day_of_week(20211201)
-        >>> day_of_week("20211201")
+        int: 1 for Monday, 7 for Sunday.
     """
-    return adjust(dt).day_of_week + 1
-
-
-def _any2pdt(t: DatetimeLike, date_only: bool = False) -> pd.Timestamp:
-    """Convert any date-like object to pandas Timestamp.
-
-    Args:
-        t: Value to be converted to Timestamp
-        date_only: If True, removes time component. Defaults to False.
-
-    Returns:
-        pd.Timestamp: Parsed datetime
-
-    Raises:
-        ValueError: If input format is not recognized
-    """
-    try:
-        if isinstance(t, str) and t.lower() == "today":
-            t = datetime.now()
-        if not isinstance(t, pd.Timestamp):
-            t = pd.Timestamp(str(t))
-        return t.normalize() if date_only else t
-    except (ValueError, TypeError) as e:
-        raise ValueError(f"Invalid datetime format: {t}") from e
+    # Pandas 的 dayofweek 范围是 0-6 (周一至周日)
+    return int(to_timestamp(dt).dayofweek + 1)
 
 
 def adjust(date: DatetimeLike, n: int = 0, date_only: bool = False) -> pd.Timestamp:
-    """Adjust date by adding/subtracting days.
+    """
+    Adjust a date by adding or subtracting a number of days.
 
     Args:
-        date: Base date to adjust
-        n: Number of days to adjust by (positive=forward, negative=backward)
-        date_only: If True, removes time component. Defaults to False.
-
-    Returns:
-        pd.Timestamp: Adjusted datetime
-
-    Examples:
-        >>> adjust("2024-01-01", 1)  # Next day
-        >>> adjust("2024-01-01", -1)  # Previous day
-        >>> adjust("today")  # Today
+        date: Base date to adjust.
+        n: Number of days to shift.
+        date_only: Whether to strip the time component.
     """
-    date = _any2pdt(date, date_only=date_only)
-    return date if n == 0 else date + pd.Timedelta(days=n)
+    ts = to_timestamp(date, date_only=date_only)
+    return ts if n == 0 else ts + pd.Timedelta(days=n)
 
 
 def diff(start_date: DatetimeLike, end_date: DatetimeLike) -> int:
-    """Calculate number of days between two dates.
+    """
+    Calculate the total number of days between two dates.
+    """
+    s = to_timestamp(start_date, date_only=True)
+    e = to_timestamp(end_date, date_only=True)
+    return int((e - s).days)
+
+
+def get_range(
+    start_date: DatetimeLike | None = None, end_date: DatetimeLike | None = None
+) -> list[pd.Timestamp]:
+    """
+    Generate a list of daily timestamps within a specified range.
 
     Args:
-        start_date: Starting date
-        end_date: Ending date
-
-    Returns:
-        int: Number of days between dates
-
-    Examples:
-        >>> diff("2024-01-01", "2024-02-01")  # 31
+        start_date: Defaults to "2010-01-01".
+        end_date: Defaults to current date.
     """
-    return (adjust(end_date, date_only=True) - adjust(start_date, date_only=True)).days
-
-
-def get(start_date: Optional[DatetimeLike] = None,
-        end_date: Optional[DatetimeLike] = None) -> List[pd.Timestamp]:
-    """Generate a list of dates within range (inclusive).
-
-    Args:
-        start_date: Starting date. Defaults to "2010-01-01"
-        end_date: Ending date. Defaults to today
-
-    Returns:
-        List[pd.Timestamp]: List of dates
-
-    Raises:
-        ValueError: If start_date is after end_date
-    """
-    start = adjust(start_date if start_date else "2010-01-01")
-    end = adjust(end_date if end_date else "today")
+    start = to_timestamp(start_date if start_date else "2010-01-01", date_only=True)
+    end = to_timestamp(end_date if end_date else "today", date_only=True)
 
     if start > end:
-        raise ValueError(f"Start date {start} cannot be after end date {end}")
+        raise ValueError(f"Start date {start} cannot be later than end date {end}")
 
-    return [start + timedelta(days=i) for i in range((end - start).days + 1)]
-
-
-def str2dt(s: str) -> pd.Timestamp:
-    """Convert a string to a pandas Timestamp.
-
-    Args:
-        s: Date string to convert
-
-    Returns:
-        pd.Timestamp: Converted timestamp
-
-    Examples:
-        >>> str2dt("2024-01-01")
-        >>> str2dt("20240101")
-    """
-    return adjust(s)
+    return pd.date_range(start, end, freq="D").tolist()  # type: ignore[no-any-return]
 
 
-def str2ts(s: str) -> float:
-    """Convert a datetime-like string to a POSIX timestamp.
-
-    Args:
-        s: Date string to convert
-
-    Returns:
-        float: POSIX timestamp
-
-    Examples:
-        >>> str2ts("2024-01-01")
-        1704067200.0
-    """
-    return adjust(s).timestamp()
+def dt2str(d: datetime | pd.Timestamp, method: FormatMethod | str = "wide") -> str:
+    """Convert a datetime/timestamp object to a formatted string."""
+    fmt = SHORTCUTS.get(method, method)
+    return d.strftime(fmt)
 
 
-def ts2dt(t: Union[int, float]) -> datetime:
-    """Convert a POSIX timestamp to a datetime.
-
-    Args:
-        t: POSIX timestamp
-
-    Returns:
-        datetime: Converted datetime object
-
-    Examples:
-        >>> ts2dt(1704067200)
-        datetime(2024, 1, 1, 0, 0)
-    """
-    return datetime.fromtimestamp(float(t))
+def ts2str(t: int | float, method: FormatMethod | str = "wide") -> str:
+    """Convert a Unix epoch timestamp to a formatted string."""
+    dt = datetime.fromtimestamp(float(t))
+    return dt2str(dt, method)
 
 
-def ts2str(t: Union[int, float], method: Union[FormatMethod, str] = "wide") -> str:
-    """Convert a POSIX timestamp to a formatted string.
-
-    Args:
-        t: POSIX timestamp
-        method: Format method or custom format string. Defaults to "wide"
-
-    Returns:
-        str: Formatted date string
-
-    Examples:
-        >>> ts2str(1704067200, "wide")
-        '2024-01-01'
-    """
-    return dt2str(ts2dt(t), method)
-
-
-def dt2ts(d: Union[datetime, pd.Timestamp]) -> float:
-    """Convert a datetime to a POSIX timestamp.
-
-    Args:
-        d: Datetime object to convert
-
-    Returns:
-        float: POSIX timestamp
-
-    Examples:
-        >>> dt2ts(datetime(2024, 1, 1))
-        1704067200.0
-    """
-    return d.timestamp()
-
-
-def dt2str(d: datetime, method: Union[FormatMethod, str] = "wide") -> str:
-    """Convert datetime to formatted string.
-
-    Args:
-        d: Datetime to convert
-        method: Format method or custom format string. Defaults to "wide"
-
-    Returns:
-        str: Formatted date string
-    """
-    format_str = SHORTCUTS.get(method, method)
-    return d.strftime(format_str)
-
-
-def is_date_pl(data: Union[pl.DataFrame, pl.LazyFrame, pl.Series],
-               col_name: str = "tdate") -> bool:
-    """Check if polars object has date/datetime type.
-
-    Args:
-        data: Polars DataFrame, LazyFrame or Series
-        col_name: Column name to check. Defaults to "tdate"
-
-    Returns:
-        bool: True if column is date/datetime type
-    """
+def is_date_pl(data: pl.DataFrame | pl.LazyFrame | pl.Series, col_name: str = "dt") -> bool:
+    """Check if a Polars Series or DataFrame column is a temporal type."""
     if isinstance(data, pl.Series):
-        return data.dtype in (pl.Date, pl.Datetime)
+        return data.dtype.is_temporal()
 
-    return (col_name in data.schema and
-            data.schema[col_name] in (pl.Date, pl.Datetime))
+    if col_name not in data.schema:
+        return False
+
+    return bool(data.schema[col_name].is_temporal())
+
+
+def is_date_pd(series: pd.Series) -> bool:
+    """Check if a Pandas Series is a datetime type."""
+    return bool(pd.api.types.is_datetime64_any_dtype(series))
