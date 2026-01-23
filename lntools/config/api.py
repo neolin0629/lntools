@@ -1,11 +1,5 @@
 from configparser import ConfigParser, ExtendedInterpolation
-<<<<<<< HEAD
-from dataclasses import dataclass, fields, field
-from pathlib import Path
-
-=======
 from dataclasses import dataclass, field, fields
->>>>>>> 337bf0967ec227d9fe4384fd749d40840dc6c730
 import importlib.resources
 from pathlib import Path
 from typing import Any
