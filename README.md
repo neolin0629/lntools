@@ -182,7 +182,7 @@ is_date_pl(df_pl["dt"])  # True (传入 Series)
 from lntools.timeutils import timer
 import time
 
-# 基础用法：函数耗时超过阈值时打印
+# 基础用法：耗时超过阈值时打印（自动转换为人性化时间格式）
 @timer(msg="Data Processing", threshold=3.0)
 def process_data():
     time.sleep(5)
@@ -270,14 +270,14 @@ from lntools import read_file, read_directory
 import pandas as pd
 
 # 读取单个文件（自动识别格式）
-df = read_file("data.csv", df_lib="polars")
-df = read_file("data.parquet", df_lib="pandas")
-df = read_file("data.xlsx", df_lib="polars")
+df = read_file("data.csv", engine="polars")
+df = read_file("data.parquet", engine="pandas")
+df = read_file("data.xlsx", engine="polars")
 
-# 读取目录中的所有文件
+# 读取目录中的所有文件（对 Polars 引擎下的 CSV/Parquet 等自动开启原生扫描加速）
 df = read_directory(
     path="/path/to/data",
-    df_lib="polars",
+    engine="polars",
     threads=10
 )
 
@@ -1233,10 +1233,8 @@ lntools/
 │       ├── misc.py           # 其他工具
 │       └── typing.py         # 类型定义
 ├── tests/                    # 测试文件
-├── pyproject.toml            # 安装配置
-├── README.md                 # 项目文档
-├── .flake8                   # Flake8 配置
-└── .pylintrc                 # Pylint 配置
+├── pyproject.toml            # 安装及开发工具配置 (Ruff, BasedPyright 等)
+└── README.md                 # 项目文档
 ```
 
 ---
@@ -1262,17 +1260,19 @@ python -m pytest tests/test_timeutils.py
 python -m pytest --cov=lntools tests/
 ```
 
-### 代码检查
+### 代码检查与格式化
+
+本项目使用 Ruff 进行代码检查和格式化，使用 BasedPyright（或 Pyright）进行类型检查。相关配置位于 `pyproject.toml` 中。
 
 ```bash
-# 使用 flake8 检查代码风格
-flake8 lntools/
+# 使用 Ruff 检查代码与风格
+ruff check lntools/
 
-# 使用 pylint 进行代码质量检查
-pylint lntools/
+# 使用 Ruff 格式化代码
+ruff format lntools/
 
-# 使用 mypy 进行类型检查
-mypy lntools/
+# 使用 basedpyright 进行类型检查
+basedpyright lntools/
 ```
 
 ---

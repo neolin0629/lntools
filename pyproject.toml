@@ -84,22 +84,23 @@ filterwarnings = [
     "ignore::DeprecationWarning",
 ]
 
-[tool.pyright]
-typeCheckingMode = "strict"
+[tool.basedpyright]
+typeCheckingMode = "standard"
 # 允许导入没有类型存根 (.pyi) 的第三方库 (如 tushare, CTP 接口)
 # 如果不加这行，导入这些库时 import 语句会报错
 reportMissingTypeStubs = false
 
 # 忽略因为库定义缺失导致的 "Unknown" 类型
 # 解决 Pandas/Polars/Numpy 链式调用产生大量 Unknown 的问题
-reportUnknownArgumentType = false
-reportUnknownVariableType = false
-reportUnknownParameterType = false
-reportUnknownMemberType = false
-reportUnknownLambdaType = false
-
-# 允许我写 "多余" 的 isinstance 检查
-# 在实盘中，我不信任上游数据，即使 Type Hint 说它是 int，我也要 check 它是 int
+# reportUnknownArgumentType = false
+# reportUnknownVariableType = false
+# reportUnknownParameterType = false
+# reportUnknownMemberType = false
+# reportUnknownLambdaType = false
+reportUnusedImport = "warning"         # 让 Ruff 负责删除，但这里显示警告
+reportUnusedVariable = "warning"
+reportDuplicateImport = "error"
+pythonVersion = "3.10"
 reportUnnecessaryIsInstance = false
 
 # 排除目录
@@ -108,21 +109,5 @@ exclude = [
     "**/__pycache__",
     "**/.git",
     "**/.github",
-    "**/.vscode"
+    "**/.vscode",
 ]
-
-[tool.mypy]
-python_version = "3.10"
-warn_return_any = true     # 警告返回 Any 类型的函数
-warn_unused_configs = true # 警告未使用的配置选项
-ignore_missing_imports = true  # 忽略没有类型提示的第三方库
-check_untyped_defs = true      # 检查没有类型声明的函数体
-disallow_untyped_defs = true  # 不允许没有类型声明的函数定义
-
-[[tool.mypy.overrides]]
-module = [
-    "requests.*",
-    "yaml.*",
-]
-ignore_missing_imports = true
-

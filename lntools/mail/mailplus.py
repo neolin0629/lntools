@@ -293,7 +293,10 @@ class MailPlus:
             log.error("No recipients specified for email")
             raise ValueError("No recipients specified")
 
-        self.msg.attach(MIMEText(self.text, "html", "utf-8"))
+        if not getattr(self, "_html_attached", False):
+            self.msg.attach(MIMEText(self.text, "html", "utf-8"))
+            self._html_attached = True
+
         recipients = self.to + self.cc
 
         for attempt in range(retries):

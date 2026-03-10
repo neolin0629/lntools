@@ -348,7 +348,7 @@ def _get_formatted_files(
     Time Complexity: O(n), where n is the number of dates
     Space Complexity: O(n) for storing file paths
     """
-    from lntools.timeutils import dt2str, get_range
+    from lntools.timeutils import dt2str, get_range, to_timestamp
 
     # 使用传入的 trading_dates 或者通过 get_range 获取自然日
     if trading_dates is not None:
@@ -364,7 +364,7 @@ def _get_formatted_files(
 
     # Generate expected and actual file paths
     expected_files = [
-        file_pattern.format(date=dt2str(pd.Timestamp(date), date_format)) for date in dates
+        file_pattern.format(date=dt2str(to_timestamp(date), date_format)) for date in dates
     ]
     existing_files = [
         base_path / f for f in expected_files
@@ -455,6 +455,28 @@ def read_directory(
         if not files:
             log.warning(f"No files found in {base_path}")
             return pl.DataFrame() if engine == "polars" else pd.DataFrame()
+
+    # Attempt native Polars scanning for performance before falling back to ThreadPool
+    if engine == "polars" and reader is read_file:
+        exts = {f.suffix.lower() for f in files}
+        if len(exts) == 1:
+            ext = exts.pop()
+            scan_funcs = {
+                ".csv": pl.scan_csv,
+                ".parquet": pl.scan_parquet,
+                ".ipc": pl.scan_ipc,
+                ".feather": pl.scan_ipc,
+            }
+            if ext in scan_funcs:
+                try:
+                    log.info(f"Attempting native polars scan for {len(files)} {ext} files...")
+                    paths = [str(f) for f in files]
+                    lazy_df = scan_funcs[ext](paths, **kwargs)
+                    df = lazy_df.collect()
+                    log.info(f"Native read completed, shape: {df.shape}")
+                    return df
+                except Exception as e:
+                    log.warning(f"Native polars scan failed ({e}). Falling back to multi-threading.")
 
     log.info(f"Starting parallel read of {len(files)} files with {threads} threads")
 
