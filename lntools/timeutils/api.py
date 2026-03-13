@@ -58,7 +58,9 @@ def timer(
             elapsed = timer_func() - start_time
 
             if elapsed >= threshold:
-                time_str = f"{elapsed:.2f}s" if elapsed < 60 else f"{elapsed / 60:.2f}min"
+                from lntools.utils.human import sec2str
+
+                time_str = sec2str(elapsed)
                 reporter(f"[{msg}] 耗时: {time_str}")
             return result
 

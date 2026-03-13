@@ -80,8 +80,8 @@ class FeishuNotifier:
             # Method 2: Use <at> tag in message
             notifier.send_text("Task completed <at user_id=\"all\"></at>")
         """
-        # 简单的长度警告
-        if len(message.encode("utf-8")) > 10000:
+        # 简单的长度警告 (先粗略检查以优化性能)
+        if len(message) > 3333 and len(message.encode("utf-8")) > 10000:
             log.warning("Message length exceeds 10000 bytes, may fail to send.")
 
         # 构建完整消息文本（添加 @提及）
@@ -169,7 +169,12 @@ class FeishuNotifier:
                 )
                 response.raise_for_status()
 
-                resp_json = response.json()
+                try:
+                    resp_json = response.json()
+                except ValueError as e:
+                    log.error("Failed to parse JSON response: %s (Status: %s)", e, response.status_code)
+                    return False
+
                 if resp_json.get("code") == 0:
                     log.info("Notification sent successfully")
                     return True
@@ -506,7 +511,11 @@ class WeComNotifier:
                 )
                 response.raise_for_status()
 
-                resp_json = response.json()
+                try:
+                    resp_json = response.json()
+                except ValueError as e:
+                    log.error("Failed to parse JSON response: %s (Status: %s)", e, response.status_code)
+                    return False
 
                 # 企业微信成功返回: {"errcode": 0, "errmsg": "ok"}
                 if resp_json.get("errcode") == 0:

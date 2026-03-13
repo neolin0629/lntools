@@ -7,9 +7,11 @@ import polars as pl
 def test_config_utils() -> None:
     from lntools.config import read_pkg_ini
 
-    config = read_pkg_ini("config/test.ini",)
-    config.add_section('section1')
-    config.set('section1', 'key1', 'new_value')
+    config = read_pkg_ini(
+        "config/test.ini",
+    )
+    config.add_section("section1")
+    config.set("section1", "key1", "new_value")
     pprint(config["owner"]["name"])
     pprint(config.get("owner", "organization"))
     pprint(config.get("database", "server"))
@@ -30,17 +32,15 @@ def test_config_utils() -> None:
 def test_mail() -> None:
     df = pl.DataFrame({"a": [1, 2], "b": [3, 4]})
     from lntools.mail import MailPlus
+
     m = MailPlus()
     success = (
-        m
-        .newemail(to="125179847@qq.com", subject="test mail python")
+        m.newemail(to="125179847@qq.com", subject="test mail python")
         .add_title("This is lntools test mail")
         .add_content("from Neo lntools")
         .add_images(["D:\\1.png", "D:\\1767941843347_d.png"])
         .add_href(href="https://git.qxtech.cc/johnny/lntools", title="lntools")
-        .add_attachments([
-            "D:\\download\\12524412.xlsx",
-            "E:\\document\\getrich系统设计v1.1.md"])
+        .add_attachments(["D:\\download\\12524412.xlsx", "E:\\document\\getrich系统设计v1.1.md"])
         .add_table(df)
         .sendmail()
     )
@@ -57,15 +57,21 @@ def test_timeutils() -> None:
     pprint(dt2str(to_timestamp("today"), "standard"))
     pprint(to_timestamp("today"))
     import time
+
     pprint(ts2str(time.time(), "wide"))
     pprint(adjust("20260101"))
 
 
 def test_cli() -> None:
     from lntools.utils import CLI
+
     cli = CLI()
-    cli.add("-p", "--portfolio", type=int, nargs="+", action="store", required=True, help="portfolio id")
-    cli.add("-m", "--money", type=float, nargs="+", action="store", required=True, help="initial money")
+    cli.add(
+        "-p", "--portfolio", type=int, nargs="+", action="store", required=True, help="portfolio id"
+    )
+    cli.add(
+        "-m", "--money", type=float, nargs="+", action="store", required=True, help="initial money"
+    )
     cli.add("-s", "--save", action="store_true", help="whether save result")
     cli.add("-un", "--unsave", action="store_false", help="whether don't save result")
     cli.add("-n", "--name", type=str, nargs="*", action="store", required=True, help="pm name")
@@ -98,6 +104,7 @@ def test_fliesystem() -> None:
         read_directory,
         read_file,
     )
+
     sysroot = "E:\\data"
     pprint(is_dir(Path(sysroot, "ricequant")))
     pprint(is_file(Path(sysroot, "ricequant", "all_instruments_CS.parquet")))
@@ -105,7 +112,10 @@ def test_fliesystem() -> None:
     pprint(read_file(Path(sysroot, "ricequant", "all_instruments", "CS.parquet")))
     make_dirs(Path(sysroot, "ricequant", "quote"))
     pprint(Path(sysroot, "ricequant", "quote").exists())
-    move(Path(sysroot, "ricequant", "all_instruments", "CS.parquet"), Path(sysroot, "ricequant", "quote"))
+    move(
+        Path(sysroot, "ricequant", "all_instruments", "CS.parquet"),
+        Path(sysroot, "ricequant", "quote"),
+    )
     pprint(Path(sysroot, "ricequant", "quote", "CS.parquet").exists())
     # pprint(move(Path(sysroot, "ricequant", "quote", "px1"),
     #   Path(sysroot, "ricequant"), keep_old=False, exist_ok=True))
@@ -116,12 +126,15 @@ def test_fliesystem() -> None:
     pprint(get_dirs(Path("E:\\data\\ricequant")))
     # remove(Path(sysroot, "data", "px", "20240105.parquet"))
     # remove(Path(sysroot, "data", "px"))
-    dates = ['2023-12-28', '2024-01-02', '2024-01-03', '2024-01-04', '2024-01-05']
+    dates = ["2023-12-28", "2024-01-02", "2024-01-03", "2024-01-04", "2024-01-05"]
     pprint(
         read_directory(
             Path(r"E:\data\ricequant\daybar+info\日线数据\股票"),
-            sdt="2023-12-28", edt="2024-01-05", date_format="%Y-%m-%d", file_pattern="{date}.parquet",
-            trading_dates=dates
+            sdt="2023-12-28",
+            edt="2024-01-05",
+            date_format="%Y-%m-%d",
+            file_pattern="{date}.parquet",
+            trading_dates=dates,
         )
     )
 
@@ -136,6 +149,7 @@ def test_human() -> None:
     # datetime
     """
     from lntools.utils import datetime_str, lists, path, ranges, sec2str, unit
+
     pprint(path("~/data/quote/stockinfo"))
     pprint(unit(3.141, "second", decimal=2))
     pprint(sec2str(1024))
@@ -149,6 +163,7 @@ def test_track() -> None:
     import time
 
     from lntools.utils import RichProgressManager, track_simple
+
     for _ in track_simple(50, msg="test enumerate"):
         # fprint(i)
         time.sleep(0.02)
@@ -166,7 +181,10 @@ def test_track() -> None:
             time.sleep(delay)
 
     # 开启 remove_task_on_finish=True，看下动态移除效果
-    with RichProgressManager(remove_task_on_finish=True) as rpm, ThreadPoolExecutor(max_workers=4) as executor:
+    with (
+        RichProgressManager(remove_task_on_finish=True) as rpm,
+        ThreadPoolExecutor(max_workers=4) as executor,
+    ):
         futures = [executor.submit(worker, i, rpm) for i in range(1, 5)]
         for f in futures:
             f.result()
@@ -174,12 +192,9 @@ def test_track() -> None:
 
 def test_log() -> None:
     from lntools.utils import Logger, handle_path
-    log_path = handle_path("E://temp/test1.log")
-    log = Logger(
-        module_name="test",
-        output_method=["console", "file"],
-        file=log_path
-    )
+
+    log_path = handle_path("d://tmp//test1.log")
+    log = Logger(module_name="test", output_method=["console", "file"], file=log_path)
     log.set_level("warning")
     log.info("information from test.")
     log.warning("warning from test.")
@@ -190,7 +205,7 @@ def test_log() -> None:
     log.debug("debug from test.")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # test_mail()
     # test_timeutils()
     # test_cli()
