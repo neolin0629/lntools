@@ -6,7 +6,8 @@ from typing import Any
 
 from yaml import Loader, dump, load, safe_dump, safe_load
 
-from lntools.utils import Logger, PathLike, handle_path
+from lntools.core import Logger, handle_path
+from lntools.types import PathLike
 
 log = Logger("lntools.config")
 PATH: Path = handle_path(Path.home() / ".config" / "lntools" / "lntools.yaml")

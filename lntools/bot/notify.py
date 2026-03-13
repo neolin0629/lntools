@@ -4,9 +4,11 @@ from typing import Any
 
 import requests
 
-from lntools.utils.log import Logger
+from lntools.core import Logger
 
 log = Logger("lntools.bot.notify")
+
+__all__ = ["FeishuNotifier", "WeComNotifier"]
 
 
 class FeishuNotifier:
@@ -141,10 +143,7 @@ class FeishuNotifier:
                 # 字符串内容转换为默认格式
                 data["content"] = {
                     "post": {
-                        "zh_cn": {
-                            "title": "",
-                            "content": [[{"tag": "text", "text": str(content)}]]
-                        }
+                        "zh_cn": {"title": "", "content": [[{"tag": "text", "text": str(content)}]]}
                     }
                 }
 

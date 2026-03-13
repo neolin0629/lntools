@@ -1,7 +1,7 @@
 @echo off
 call conda activate dev
 
-set WHEEL_DIR=E:/project/wheels
+set WHEEL_DIR=D:/project/wheels
 set PACKAGE_NAME=lntools
 
 del /q "%WHEEL_DIR%\%PACKAGE_NAME%-*.whl" 2>nul

@@ -7,7 +7,7 @@ from typing import Literal, ParamSpec, TypeVar
 import pandas as pd
 import polars as pl
 
-from lntools.utils.typing import DatetimeLike
+from lntools.types import DatetimeLike
 
 # ==========================================
 # 类型定义与常量
@@ -96,6 +96,9 @@ def to_timestamp(t: DatetimeLike, date_only: bool = False) -> pd.Timestamp:
         except Exception as e:
             raise ValueError(f"Invalid datetime format: {t}") from e
 
+    if pd.isna(ts):
+        raise ValueError(f"Invalid datetime format: {t}")
+
     return ts.normalize() if date_only else ts
 
 
@@ -156,10 +159,12 @@ def get_range(
     return pd.date_range(start, end, freq="D").tolist()  # type: ignore[no-any-return]
 
 
-def dt2str(d: datetime | pd.Timestamp, method: FormatMethod | str = "wide") -> str:
+def dt2str(d: datetime | pd.Timestamp | pd.NaTType, method: FormatMethod | str = "wide") -> str:
     """Convert a datetime/timestamp object to a formatted string."""
+    if pd.isna(d):
+        raise ValueError("Cannot convert NaT to string")
     fmt = SHORTCUTS.get(method, method)
-    return d.strftime(fmt)
+    return d.strftime(fmt)  # type: ignore[union-attr]
 
 
 def ts2str(t: int | float, method: FormatMethod | str = "wide") -> str:
@@ -182,3 +187,18 @@ def is_date_pl(data: pl.DataFrame | pl.LazyFrame | pl.Series, col_name: str = "d
 def is_date_pd(series: pd.Series) -> bool:
     """Check if a Pandas Series is a datetime type."""
     return bool(pd.api.types.is_datetime64_any_dtype(series))
+
+
+__all__ = [
+    "SHORTCUTS",
+    "adjust",
+    "day_of_week",
+    "diff",
+    "dt2str",
+    "get_range",
+    "is_date_pd",
+    "is_date_pl",
+    "timer",
+    "to_timestamp",
+    "ts2str",
+]
