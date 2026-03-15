@@ -10,7 +10,7 @@ from lntools.core import Logger, handle_path
 from lntools.types import PathLike
 
 log = Logger("lntools.config")
-PATH: Path = handle_path(Path.home() / ".config" / "lntools" / "lntools.yaml")
+PATH: Path = handle_path(Path.home() / ".config" / "lntools.yaml")
 
 
 def read_pkg_ini(

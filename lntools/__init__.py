@@ -3,7 +3,7 @@
 # ==========================================
 # Submodules
 # ==========================================
-from . import bot, config, core, format, mail, timeutils, types, utils
+from . import bot, config, core, format, mail, timeutils, types
 
 # ==========================================
 # Core utilities (from core module)
@@ -67,7 +67,6 @@ __all__ = [
     "mail",
     "timeutils",
     "types",
-    "utils",
     # Core - CLI
     "CLI",
     "CLIError",

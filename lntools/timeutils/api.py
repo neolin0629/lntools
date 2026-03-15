@@ -58,7 +58,7 @@ def timer(
             elapsed = timer_func() - start_time
 
             if elapsed >= threshold:
-                from lntools.utils.human import sec2str
+                from lntools.format import sec2str
 
                 time_str = sec2str(elapsed)
                 reporter(f"[{msg}] 耗时: {time_str}")
@@ -161,7 +161,7 @@ def get_range(
     return pd.date_range(start, end, freq="D").tolist()  # type: ignore[no-any-return]
 
 
-def dt2str(d: datetime | pd.Timestamp | pd.NaTType, method: FormatMethod | str = "wide") -> str:
+def dt2str(d: datetime | pd.Timestamp, method: FormatMethod | str = "wide") -> str:
     """Convert a datetime/timestamp object to a formatted string."""
     if pd.isna(d):
         raise ValueError("Cannot convert NaT to string")
