@@ -9,7 +9,7 @@ description = "Development Assistance Tools"
 authors = [
     {name = "linnan", email = "lnonly@163.com"}
 ]
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 dependencies = [
     "numpy",
     "pandas",

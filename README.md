@@ -2,9 +2,9 @@
 
 <div align="center">
 
-![Python Version](https://img.shields.io/badge/python-3.11%2B-blue)
+![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-0.1.1-orange)
+![Version](https://img.shields.io/badge/version-1.0.1-orange)
 
 **专为量化研究和运维设计的 Python 工具包**
 
@@ -44,7 +44,7 @@ pip install .
 - `rich` - 终端美化输出
 - `pyyaml` - YAML 配置文件
 - `pyarrow` - 高效数据存储
-- `request` - HTTP 客户端库
+- `requests` - HTTP 客户端库
 - `tqdm` - 智能进度条库
 
 ---
