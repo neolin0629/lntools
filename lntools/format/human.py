@@ -1,5 +1,4 @@
-"""
-Human-readable formatting utilities for various data types.
+"""Human-readable formatting utilities for various data types.
 
 This module provides functions to format different types of data (paths, units, times, lists)
 into human-readable strings, primarily for logging and CLI output.
@@ -7,6 +6,7 @@ into human-readable strings, primarily for logging and CLI output.
 Author: Neo
 Date: 2024/6/10
 """
+
 from __future__ import annotations
 
 from collections.abc import Callable, Generator, Iterable, Sequence, Sized
@@ -17,13 +17,13 @@ from pathlib import Path
 import threading
 from typing import TYPE_CHECKING, Any, TypeAlias, TypeVar, cast
 
-from .typing import DatetimeLike
+from lntools.types import DatetimeLike
 
 if TYPE_CHECKING:
     from rich.progress import Progress
 
 
-T = TypeVar('T')
+T = TypeVar("T")
 Reporter: TypeAlias = Callable[[str], None]
 
 
@@ -31,7 +31,7 @@ def path(path_str: str | Path) -> str:
     """
     Convert a path to a human-readable format.
 
-    If the path is relative to the current working directory, 
+    If the path is relative to the current working directory,
     returns the relative path. Otherwise returns absolute path.
 
     Args:
@@ -59,12 +59,7 @@ def path(path_str: str | Path) -> str:
         return str(path_str)
 
 
-def unit(
-    n: int | float,
-    unit_name: str,
-    decimal: int = 0,
-    auto_scale: bool = False
-) -> str:
+def unit(n: int | float, unit_name: str, decimal: int = 0, auto_scale: bool = False) -> str:
     """
     Format a number with its unit into human-readable text.
 
@@ -92,14 +87,14 @@ def unit(
     prefix = ""
 
     if auto_scale and abs(val) >= 1000:
-        for p in ['', 'K', 'M', 'B', 'T']:
+        for p in ["", "K", "M", "B", "T"]:
             if abs(val) < 1000.0:
                 prefix = p
                 break
-            if p != 'T':  # Don't divide on the last step
+            if p != "T":  # Don't divide on the last step
                 val /= 1000.0
             else:
-                prefix = 'T'
+                prefix = "T"
 
         # For scaled numbers, usually 1 decimal is enough unless specified otherwise
         if decimal == 0 and val % 1 != 0:
@@ -112,7 +107,7 @@ def unit(
 
     # Handle pluralization
     base_unit = unit_name
-    suffix = 's' if (val != 1.0 or prefix) and not base_unit.endswith('s') else ''
+    suffix = "s" if (val != 1.0 or prefix) and not base_unit.endswith("s") else ""
 
     return f"{formatted_number}{prefix} {base_unit}{suffix}"
 
@@ -129,9 +124,9 @@ def bytes_size(n: int | float, decimal: int = 1) -> str:
         Formatted string (e.g. "1.5 MB")
     """
     n = float(n)
-    for unit_name in ['B', 'KB', 'MB', 'GB', 'TB', 'PB']:
+    for unit_name in ["B", "KB", "MB", "GB", "TB", "PB"]:
         if abs(n) < 1024.0:
-            if unit_name == 'B':
+            if unit_name == "B":
                 return f"{int(n)} {unit_name}"
             return f"{n:.{decimal}f} {unit_name}"
         n /= 1024.0
@@ -152,9 +147,9 @@ def sec2str(s: float) -> str:
         return f"-{sec2str(-s)}"
 
     if s < 0.001:  # Microseconds
-        return f"{s*1e6:.0f}µs"
+        return f"{s * 1e6:.0f}µs"
     if s < 1:  # Milliseconds
-        return f"{s*1e3:.0f}ms"
+        return f"{s * 1e3:.0f}ms"
     if s < 60:
         return f"{s:.2f}s" if s < 10 else f"{s:.1f}s"
 
@@ -198,7 +193,7 @@ def lists(items: Sequence[Any] | None, n: int = 3, formatter: Callable[[Any], st
         items = items.tolist()  # type: ignore
 
     # Convert generator/iterator to list if needed
-    if not isinstance(items, (list, tuple, str)):
+    if not isinstance(items, list | tuple | str):
         items = list(items) if isinstance(items, Iterable) else [items]
 
     length = len(items)  # type: ignore
@@ -230,6 +225,7 @@ def ranges(days: Sequence[DatetimeLike], sort: bool = True) -> str:
         return "No dates"
 
     import pandas as pd
+
     # Use pd.DatetimeIndex which is often more robust for type checkers with sequences
     try:
         ts_index = pd.to_datetime(pd.Series(days))
@@ -305,7 +301,6 @@ def _track_text(
     reporter: Reporter,
     report_every: int = 100,
 ) -> Generator[T, None, None]:
-
     last_reported_pct = -1
     for i, item in enumerate(items):
         count = i + 1
@@ -326,6 +321,7 @@ def _track_text(
 # 1. 极简模式 (基于 tqdm)
 # ==========================================
 
+
 def track_simple(
     sequence: Iterable[T] | int,
     msg: str = "Processing",
@@ -334,13 +330,16 @@ def track_simple(
     report_every: int = 100,
     **tqdm_kwargs: Any,
 ) -> Generator[T, None, None]:
-    items: Iterable[T] = cast(Iterable[T], range(sequence)) if isinstance(sequence, int) else sequence
+    items: Iterable[T] = (
+        cast(Iterable[T], range(sequence)) if isinstance(sequence, int) else sequence
+    )
 
     if total is None and isinstance(items, Sized):
         total = len(items)
 
     try:
         from tqdm import tqdm
+
         with tqdm(
             items,
             desc=msg,
@@ -353,12 +352,15 @@ def track_simple(
         return
     except ImportError:
         # 没 tqdm -> text fallback（有节流）
-        yield from _track_text(items, msg=msg, total=total, reporter=reporter, report_every=report_every)
+        yield from _track_text(
+            items, msg=msg, total=total, reporter=reporter, report_every=report_every
+        )
 
 
 # ==========================================
 # 2. 增强模式 (基于 rich，支持多进度条)
 # ==========================================
+
 
 class RichProgressManager:
     """Rich-based progress manager supporting multiple concurrent tasks."""
@@ -400,7 +402,10 @@ class RichProgressManager:
             return self
         except ImportError:
             self.progress = None
-            self.reporter("Warning: rich is not installed, RichProgressManager will fallback to text progress.")
+            self.reporter(
+                "Warning: rich is not installed, "
+                "RichProgressManager will fallback to text progress."
+            )
             return self
 
     def __exit__(
@@ -418,7 +423,9 @@ class RichProgressManager:
         msg: str = "Working",
         total: int | None = None,
     ) -> Generator[T, None, None]:
-        items: Iterable[T] = cast(Iterable[T], range(sequence)) if isinstance(sequence, int) else sequence
+        items: Iterable[T] = (
+            cast(Iterable[T], range(sequence)) if isinstance(sequence, int) else sequence
+        )
         if total is None and isinstance(items, Sized):
             total = len(items)
 

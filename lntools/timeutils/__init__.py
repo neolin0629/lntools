@@ -1,3 +1,5 @@
+"""Time utilities module for lntools."""
+
 from .api import (
     SHORTCUTS,
     adjust,
@@ -13,6 +15,7 @@ from .api import (
 )
 
 __all__ = [
+    "SHORTCUTS",
     "adjust",
     "day_of_week",
     "diff",
@@ -23,5 +26,4 @@ __all__ = [
     "timer",
     "to_timestamp",
     "ts2str",
-    "SHORTCUTS",
 ]

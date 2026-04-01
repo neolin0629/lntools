@@ -63,7 +63,7 @@ def test_timeutils() -> None:
 
 
 def test_cli() -> None:
-    from lntools.utils import CLI
+    from lntools.core import CLI
 
     cli = CLI()
     cli.add(
@@ -91,7 +91,7 @@ def test_cli() -> None:
 def test_fliesystem() -> None:
     from pathlib import Path
 
-    from lntools.utils import (
+    from lntools.core import (
         file_time,
         get_all,
         get_dirs,
@@ -148,7 +148,7 @@ def test_human() -> None:
     # ranges,
     # datetime
     """
-    from lntools.utils import datetime_str, lists, path, ranges, sec2str, unit
+    from lntools.format import datetime_str, lists, path, ranges, sec2str, unit
 
     pprint(path("~/data/quote/stockinfo"))
     pprint(unit(3.141, "second", decimal=2))
@@ -162,7 +162,7 @@ def test_track() -> None:
     from concurrent.futures import ThreadPoolExecutor
     import time
 
-    from lntools.utils import RichProgressManager, track_simple
+    from lntools.format import RichProgressManager, track_simple
 
     for _ in track_simple(50, msg="test enumerate"):
         # fprint(i)
@@ -191,7 +191,7 @@ def test_track() -> None:
 
 
 def test_log() -> None:
-    from lntools.utils import Logger, handle_path
+    from lntools.core import Logger, handle_path
 
     log_path = handle_path("d://tmp//test1.log")
     log = Logger(module_name="test", output_method=["console", "file"], file=log_path)

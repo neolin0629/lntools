@@ -1,3 +1,5 @@
+"""Logging utilities for lntools."""
+
 from __future__ import annotations
 
 from contextlib import suppress
@@ -12,16 +14,16 @@ from rich.logging import RichHandler
 
 # Type Aliases
 LogMethod = str | list[str]
-LogLevel = Literal['debug', 'info', 'warning', 'error', 'critical']
+LogLevel = Literal["debug", "info", "warning", "error", "critical"]
 
 # Constants
-VALID_OUTPUT_METHODS = frozenset({'console', 'file'})
+VALID_OUTPUT_METHODS = frozenset({"console", "file"})
 LOG_LEVELS: dict[str, int] = {
-    'debug': logging.DEBUG,
-    'info': logging.INFO,
-    'warning': logging.WARNING,
-    'error': logging.ERROR,
-    'critical': logging.CRITICAL
+    "debug": logging.DEBUG,
+    "info": logging.INFO,
+    "warning": logging.WARNING,
+    "error": logging.ERROR,
+    "critical": logging.CRITICAL,
 }
 
 
@@ -41,26 +43,27 @@ class LogConfig:
         default_rich: Whether to use rich formatting by default
         default_log_dir: Default directory for log files (None=script dir)
     """
-    datetime_format: str = '%Y-%m-%d %H:%M:%S'
-    file_format: str = '[%(asctime)s][%(name)s][%(levelname)s] %(message)s'
-    console_format: str = '[%(asctime)s][%(name)s][%(levelname)s] %(message)s'
-    rich_format: str = '[%(name)s] %(message)s'
-    default_level: LogLevel = 'info'
-    default_output_method: LogMethod = 'console'
+
+    datetime_format: str = "%Y-%m-%d %H:%M:%S"
+    file_format: str = "[%(asctime)s][%(name)s][%(levelname)s] %(message)s"
+    console_format: str = "[%(asctime)s][%(name)s][%(levelname)s] %(message)s"
+    rich_format: str = "[%(name)s] %(message)s"
+    default_level: LogLevel = "info"
+    default_output_method: LogMethod = "console"
     default_rich: bool = True
     default_log_dir: Path | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Convert config to dictionary."""
         return {
-            'datetime_format': self.datetime_format,
-            'file_format': self.file_format,
-            'console_format': self.console_format,
-            'rich_format': self.rich_format,
-            'default_level': self.default_level,
-            'default_output_method': self.default_output_method,
-            'default_rich': self.default_rich,
-            'default_log_dir': str(self.default_log_dir) if self.default_log_dir else None
+            "datetime_format": self.datetime_format,
+            "file_format": self.file_format,
+            "console_format": self.console_format,
+            "rich_format": self.rich_format,
+            "default_level": self.default_level,
+            "default_output_method": self.default_output_method,
+            "default_rich": self.default_rich,
+            "default_log_dir": str(self.default_log_dir) if self.default_log_dir else None,
         }
 
 
@@ -84,6 +87,7 @@ class Logger:
         _handlers: Registry of handlers added to this logger
         config: LogConfig instance for this logger
     """
+
     _instances: dict[str, Logger] = {}
     _initialized: dict[str, bool] = {}  # Track initialization status
 
@@ -92,9 +96,7 @@ class Logger:
         # 如果调用者没传，则取默认值 "default"
         module_name = kwargs.get("module_name")
         module_name = (
-            args[0]
-            if module_name is None and len(args) > 0
-            else (module_name or "default")
+            args[0] if module_name is None and len(args) > 0 else (module_name or "default")
         )
 
         if module_name not in cls._instances:
@@ -112,7 +114,7 @@ class Logger:
         rich: bool | None = None,
         file: str | Path = "",
         level: LogLevel | None = None,
-        config: LogConfig | None = None
+        config: LogConfig | None = None,
     ) -> None:
         """
         Initialize the logger with specified configuration.
@@ -168,11 +170,7 @@ class Logger:
         self._initialized[module_name] = True
 
     def setup_logger(
-        self,
-        output_method: list[str],
-        fmt: str,
-        rich: bool,
-        file: str | Path
+        self, output_method: list[str], fmt: str, rich: bool, file: str | Path
     ) -> None:
         """
         Configure logger with handlers based on output methods.
@@ -184,16 +182,16 @@ class Logger:
             file: Path to log file
         """
         # 确定日志文件路径
-        if 'file' in output_method:
+        if "file" in output_method:
             log_file = self._resolve_log_file_path(file)
             file_handler = self._create_file_handler(log_file, fmt)
-            self._handlers['file'] = file_handler
+            self._handlers["file"] = file_handler
             self._log.addHandler(file_handler)
 
         # 控制台输出
-        if 'console' in output_method:
+        if "console" in output_method:
             console_handler = self._create_console_handler(fmt, rich)
-            self._handlers['console'] = console_handler
+            self._handlers["console"] = console_handler
             self._log.addHandler(console_handler)
 
     def _resolve_log_file_path(self, file: str | Path) -> Path:
@@ -234,11 +232,9 @@ class Logger:
         Returns:
             Configured FileHandler instance
         """
-        handler = logging.FileHandler(log_file, mode='a', encoding='utf-8')
+        handler = logging.FileHandler(log_file, mode="a", encoding="utf-8")
         format_str = fmt if fmt else self.config.file_format
-        handler.setFormatter(
-            logging.Formatter(format_str, self.config.datetime_format)
-        )
+        handler.setFormatter(logging.Formatter(format_str, self.config.datetime_format))
         return handler
 
     def _create_console_handler(self, fmt: str, rich: bool) -> logging.Handler:
@@ -257,16 +253,14 @@ class Logger:
                 show_path=False,
                 rich_tracebacks=True,
                 markup=True,  # 允许rich标记
-                show_time=True
+                show_time=True,
             )
             format_str = fmt if fmt else self.config.rich_format
         else:
             handler = logging.StreamHandler(sys.stdout)
             format_str = fmt if fmt else self.config.console_format
 
-        handler.setFormatter(
-            logging.Formatter(format_str, self.config.datetime_format)
-        )
+        handler.setFormatter(logging.Formatter(format_str, self.config.datetime_format))
         return handler
 
     def set_level(self, level: LogLevel) -> None:
@@ -341,30 +335,30 @@ class Logger:
     # Specific logging methods
     def info(self, msg: str, *args: Any, **kwargs: Any) -> None:
         """Log an info message."""
-        self.log('info', msg, *args, **kwargs)
+        self.log("info", msg, *args, **kwargs)
 
     def warning(self, msg: str, *args: Any, **kwargs: Any) -> None:
         """Log a warning message."""
-        self.log('warning', msg, *args, **kwargs)
+        self.log("warning", msg, *args, **kwargs)
 
     def error(self, msg: str, *args: Any, **kwargs: Any) -> None:
         """Log an error message."""
-        self.log('error', msg, *args, **kwargs)
+        self.log("error", msg, *args, **kwargs)
 
     def debug(self, msg: str, *args: Any, **kwargs: Any) -> None:
         """Log a debug message."""
-        self.log('debug', msg, *args, **kwargs)
+        self.log("debug", msg, *args, **kwargs)
 
     def critical(self, msg: str, *args: Any, **kwargs: Any) -> None:
         """Log a critical message."""
-        self.log('critical', msg, *args, **kwargs)
+        self.log("critical", msg, *args, **kwargs)
 
     def exception(self, msg: str, *args: Any, **kwargs: Any) -> None:
         """
         Log an exception with traceback.
         Should be called from an exception handler.
         """
-        kwargs.setdefault('exc_info', True)
+        kwargs.setdefault("exc_info", True)
         self.error(msg, *args, **kwargs)
 
     @property
@@ -374,7 +368,7 @@ class Logger:
         Logger - A configurable singleton logging utility
 
         Basic Usage:
-            from lntools.utils import Logger
+            from lntools.core import Logger
 
             # Simple console logging
             log = Logger("myapp")
@@ -387,7 +381,7 @@ class Logger:
             log.error("Error occurred")
 
         Advanced Usage:
-            from lntools.utils import Logger, LogConfig
+            from lntools.core import Logger, LogConfig
 
             # Customize default behavior globally
             config = LogConfig(

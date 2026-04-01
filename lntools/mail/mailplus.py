@@ -14,7 +14,8 @@ import pandas as pd
 import polars as pl
 
 from lntools.config import CONFIG
-from lntools.utils import Logger, PathLike
+from lntools.core import Logger
+from lntools.types import PathLike
 
 log = Logger("lntools.mail")
 
@@ -437,3 +438,6 @@ class MailPlus:
             }
             m.set_server(s_dict)
         """
+
+
+__all__ = ["MailPlus"]

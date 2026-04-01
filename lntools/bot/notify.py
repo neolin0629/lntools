@@ -4,9 +4,11 @@ from typing import Any
 
 import requests
 
-from lntools.utils.log import Logger
+from lntools.core import Logger
 
 log = Logger("lntools.bot.notify")
+
+__all__ = ["FeishuNotifier", "WeComNotifier"]
 
 
 class FeishuNotifier:
@@ -170,7 +172,9 @@ class FeishuNotifier:
                 try:
                     resp_json = response.json()
                 except ValueError as e:
-                    log.error("Failed to parse JSON response: %s (Status: %s)", e, response.status_code)
+                    log.error(
+                        "Failed to parse JSON response: %s (Status: %s)", e, response.status_code
+                    )
                     return False
 
                 if resp_json.get("code") == 0:
@@ -512,7 +516,9 @@ class WeComNotifier:
                 try:
                     resp_json = response.json()
                 except ValueError as e:
-                    log.error("Failed to parse JSON response: %s (Status: %s)", e, response.status_code)
+                    log.error(
+                        "Failed to parse JSON response: %s (Status: %s)", e, response.status_code
+                    )
                     return False
 
                 # 企业微信成功返回: {"errcode": 0, "errmsg": "ok"}

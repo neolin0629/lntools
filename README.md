@@ -876,7 +876,7 @@ log = Logger("hft_engine", config=HFT_CONFIG)
 #### 基础用法
 
 ```python
-from lntools.utils.cli import CLI
+from lntools.core import CLI
 
 # 创建 CLI 对象
 cli = CLI()
@@ -901,7 +901,7 @@ print(f"输出格式: {args.get('output', 'default')}")
 `action` 参数定义了参数的行为模式：
 
 ```python
-from lntools.utils.cli import CLI
+from lntools.core import CLI
 
 cli = CLI()
 
@@ -939,7 +939,7 @@ args = cli.get()
 `nargs` 参数控制参数接受的值的数量：
 
 ```python
-from lntools.utils.cli import CLI
+from lntools.core import CLI
 
 cli = CLI()
 
@@ -972,7 +972,7 @@ args = cli.get()
 使用 `allow_unknown=True` 可以接受未定义的参数而不报错：
 
 ```python
-from lntools.utils.cli import CLI
+from lntools.core import CLI
 
 cli = CLI()
 cli.add("--known", type=str, help="已知参数")
@@ -991,7 +991,7 @@ print(f"未知参数: {args['unknown']}")
 #### 错误处理
 
 ```python
-from lntools.utils.cli import CLI, CLIError
+from lntools.core import CLI, CLIError
 
 cli = CLI()
 
@@ -1013,7 +1013,7 @@ except CLIError as e:
 ##### 1. 数据处理脚本
 
 ```python
-from lntools.utils.cli import CLI
+from lntools.core import CLI
 import polars as pl
 
 cli = CLI()
@@ -1040,7 +1040,7 @@ print(f"Data saved to {args['output']} as {args['format']}")
 ##### 2. 回测工具
 
 ```python
-from lntools.utils.cli import CLI
+from lntools.core import CLI
 from lntools.timeutils import to_timestamp
 
 cli = CLI()
@@ -1218,20 +1218,23 @@ lntools/
 │   ├── config/               # 配置管理模块
 │   │   ├── __init__.py
 │   │   └── api.py            # 配置 API
+│   ├── core/                 # 核心工具模块
+│   │   ├── __init__.py
+│   │   ├── cli.py            # CLI 工具
+│   │   ├── filesystem.py     # 文件系统操作
+│   │   └── log.py            # 日志工具
+│   ├── format/               # 格式化工具模块
+│   │   ├── __init__.py
+│   │   └── human.py          # 人性化格式化
 │   ├── mail/                 # 邮件发送模块
 │   │   ├── __init__.py
 │   │   └── mailplus.py       # MailPlus 类
 │   ├── timeutils/            # 时间工具模块
 │   │   ├── __init__.py
 │   │   └── api.py            # 时间处理 API
-│   └── utils/                # 工具集模块
+│   └── types/                # 类型定义模块
 │       ├── __init__.py
-│       ├── cli.py            # CLI 工具
-│       ├── filesystem.py     # 文件系统操作
-│       ├── human.py          # 人性化格式化
-│       ├── log.py            # 日志工具
-│       ├── misc.py           # 其他工具
-│       └── typing.py         # 类型定义
+│       └── typing.py         # 类型别名
 ├── tests/                    # 测试文件
 ├── pyproject.toml            # 安装及开发工具配置 (Ruff, BasedPyright 等)
 └── README.md                 # 项目文档

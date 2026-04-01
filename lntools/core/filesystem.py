@@ -1,20 +1,21 @@
+"""Filesystem utilities for lntools."""
+
 from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 import os
 from pathlib import Path
 import shutil
-from typing import Any, TypeVar
+from typing import Any
 
 import numpy as np
 import pandas as pd
 import polars as pl
 
-from .log import Logger
-from .typing import DatetimeLike, PathLike
+from lntools.core.log import Logger
+from lntools.types import DatetimeLike, PathLike
 
-T = TypeVar("T")
-log = Logger("lntools.utils.filesystem")
+log = Logger("lntools.core.filesystem")
 
 
 def is_dir(d: PathLike) -> bool:
@@ -54,12 +55,7 @@ def make_dirs(d: PathLike, parents: bool = True, exist_ok: bool = True) -> None:
     Path(d).mkdir(parents=parents, exist_ok=exist_ok)
 
 
-def move(
-    src: PathLike,
-    dst: PathLike,
-    keep_old: bool = True,
-    exist_ok: bool = False
-) -> None:
+def move(src: PathLike, dst: PathLike, keep_old: bool = True, exist_ok: bool = False) -> None:
     """
     Move or copy (file or directory) from src to dst.
 
@@ -131,7 +127,7 @@ def remove(path: PathLike) -> None:
         log.error(f"Failed to remove {path}: {e}")
 
 
-def file_time(file_path: PathLike, method: str = 'm') -> datetime:
+def file_time(file_path: PathLike, method: str = "m") -> datetime:
     """
     Get file's timestamp (cross-platform).
 
@@ -154,11 +150,11 @@ def file_time(file_path: PathLike, method: str = 'm') -> datetime:
         raise FileNotFoundError(f"File does not exist: {file_path}")
 
     path_str = str(path_obj)
-    if method == 'a':
+    if method == "a":
         timestamp = os.path.getatime(path_str)
-    elif method == 'm':
+    elif method == "m":
         timestamp = os.path.getmtime(path_str)
-    elif method == 'c':
+    elif method == "c":
         timestamp = os.path.getctime(path_str)
     else:
         raise ValueError("Method must be one of 'a' (accessed), 'm' (modified), 'c' (created)")
@@ -166,11 +162,7 @@ def file_time(file_path: PathLike, method: str = 'm') -> datetime:
     return datetime.fromtimestamp(timestamp)
 
 
-def list_paths(
-    rootdir: PathLike,
-    files_only: bool = False,
-    dirs_only: bool = False
-) -> list[Path]:
+def list_paths(rootdir: PathLike, files_only: bool = False, dirs_only: bool = False) -> list[Path]:
     """
     List paths under the given root directory.
 
@@ -189,7 +181,7 @@ def list_paths(
     if not root.exists():
         raise FileNotFoundError(f"Directory does not exist: {root}")
 
-    paths = root.rglob('*')
+    paths = root.rglob("*")
     if files_only and not dirs_only:
         return [p for p in paths if p.is_file()]
     if dirs_only and not files_only:
@@ -211,7 +203,9 @@ def get_files(root: PathLike) -> list[Path]:
     return list_paths(root, files_only=True)
 
 
-READERS: dict[str, dict[str, Callable[..., pd.DataFrame | pl.DataFrame | np.ndarray | str | bytes]]] = {
+READERS: dict[
+    str, dict[str, Callable[..., pd.DataFrame | pl.DataFrame | np.ndarray | str | bytes]]
+] = {
     "pandas": {
         ".csv": pd.read_csv,
         ".txt": pd.read_csv,
@@ -237,9 +231,9 @@ READERS: dict[str, dict[str, Callable[..., pd.DataFrame | pl.DataFrame | np.ndar
         ".npz": np.load,
     },
     "base": {
-        ".txt": lambda path, **kwargs: Path(path).read_text(encoding='utf-8', **kwargs),
-        ".csv": lambda path, **kwargs: Path(path).read_text(encoding='utf-8', **kwargs),
-        ".html": lambda path, **kwargs: Path(path).read_text(encoding='utf-8', **kwargs),
+        ".txt": lambda path, **kwargs: Path(path).read_text(encoding="utf-8", **kwargs),
+        ".csv": lambda path, **kwargs: Path(path).read_text(encoding="utf-8", **kwargs),
+        ".html": lambda path, **kwargs: Path(path).read_text(encoding="utf-8", **kwargs),
         ".jpg": lambda path, **kwargs: Path(path).read_bytes(),
         ".png": lambda path, **kwargs: Path(path).read_bytes(),
         ".pdf": lambda path, **kwargs: Path(path).read_bytes(),
@@ -250,9 +244,7 @@ READERS: dict[str, dict[str, Callable[..., pd.DataFrame | pl.DataFrame | np.ndar
 
 
 def load_data(
-    file_path: str | Path,
-    engine: str = "pandas",
-    **kwargs: Any
+    file_path: str | Path, engine: str = "pandas", **kwargs: Any
 ) -> pd.DataFrame | pl.DataFrame | np.ndarray | str | bytes:
     """
     统一数据加载接口，根据后缀自动选择 Reader。
@@ -281,9 +273,7 @@ def load_data(
 
 
 def read_file(
-    path: PathLike,
-    engine: str | None = None,
-    **kwargs: Any
+    path: PathLike, engine: str | None = None, **kwargs: Any
 ) -> pd.DataFrame | pl.DataFrame | np.ndarray | str | bytes:
     """
     Read file content using specified library.
@@ -309,6 +299,7 @@ def read_file(
 
     if not engine:
         from lntools.config import CONFIG
+
         engine = CONFIG.df_lib
 
     try:
@@ -325,7 +316,7 @@ def _get_formatted_files(
     path: PathLike,
     file_pattern: str = "{date}.csv",
     date_format: str = "%Y-%m-%d",
-    trading_dates: Sequence[DatetimeLike] | None = None
+    trading_dates: Sequence[DatetimeLike] | None = None,
 ) -> list[Path]:
     """
     Get list of formatted file paths between two dates.
@@ -348,7 +339,7 @@ def _get_formatted_files(
     Time Complexity: O(n), where n is the number of dates
     Space Complexity: O(n) for storing file paths
     """
-    from lntools.timeutils import dt2str, get_range, to_timestamp
+    from lntools.timeutils import dt2str, get_range
 
     # 使用传入的 trading_dates 或者通过 get_range 获取自然日
     if trading_dates is not None:
@@ -364,23 +355,20 @@ def _get_formatted_files(
 
     # Generate expected and actual file paths
     expected_files = [
-        file_pattern.format(date=dt2str(to_timestamp(date), date_format)) for date in dates
+        file_pattern.format(date=dt2str(pd.Timestamp(date), date_format)) for date in dates
     ]
-    existing_files = [
-        base_path / f for f in expected_files
-        if (base_path / f).exists()
-    ]
+    existing_files = [base_path / f for f in expected_files if (base_path / f).exists()]
 
     # Log missing files (only show first 10 to avoid cluttering logs)
     missing = set(expected_files) - {p.name for p in existing_files}
     if missing:
-        from lntools.utils.human import lists
+        from lntools.format import lists
+
         log.warning(f"Missing {len(missing)} files: {lists(sorted(missing), n=10)}")
 
     if not existing_files:
         raise RuntimeError(
-            f"No files matching '{file_pattern}' found in {path} "
-            f"between {sdt} and {edt}"
+            f"No files matching '{file_pattern}' found in {path} between {sdt} and {edt}"
         )
 
     log.info(f"Found {len(existing_files)}/{len(dates)} files in {path}")
@@ -397,7 +385,7 @@ def read_directory(
     trading_dates: Sequence[DatetimeLike] | None = None,
     engine: str = "polars",
     threads: int = 10,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> pd.DataFrame | pl.DataFrame | np.ndarray | str | bytes:
     """
     Read and concatenate files from directory with optional date filtering.
@@ -447,36 +435,12 @@ def read_directory(
 
     # Get file list
     if sdt is not None and edt is not None:
-        files = _get_formatted_files(
-            sdt, edt, base_path, file_pattern, date_format, trading_dates
-        )
+        files = _get_formatted_files(sdt, edt, base_path, file_pattern, date_format, trading_dates)
     else:
         files = get_files(base_path)
         if not files:
             log.warning(f"No files found in {base_path}")
             return pl.DataFrame() if engine == "polars" else pd.DataFrame()
-
-    # Attempt native Polars scanning for performance before falling back to ThreadPool
-    if engine == "polars" and reader is read_file:
-        exts = {f.suffix.lower() for f in files}
-        if len(exts) == 1:
-            ext = exts.pop()
-            scan_funcs = {
-                ".csv": pl.scan_csv,
-                ".parquet": pl.scan_parquet,
-                ".ipc": pl.scan_ipc,
-                ".feather": pl.scan_ipc,
-            }
-            if ext in scan_funcs:
-                try:
-                    log.info(f"Attempting native polars scan for {len(files)} {ext} files...")
-                    paths = [str(f) for f in files]
-                    lazy_df = scan_funcs[ext](paths, **kwargs)
-                    df = lazy_df.collect()
-                    log.info(f"Native read completed, shape: {df.shape}")
-                    return df
-                except Exception as e:
-                    log.warning(f"Native polars scan failed ({e}). Falling back to multi-threading.")
 
     log.info(f"Starting parallel read of {len(files)} files with {threads} threads")
 
@@ -487,8 +451,7 @@ def read_directory(
                 result = reader(f, engine=engine, **kwargs)
             else:
                 result = reader(f, **kwargs)
-            # Type guard: ensure result is DataFrame
-            if isinstance(result, (pd.DataFrame, pl.DataFrame)):
+            if isinstance(result, pd.DataFrame | pl.DataFrame):
                 return result
             raise TypeError(f"Reader returned unexpected type: {type(result).__name__}")
         except Exception as e:  # pylint: disable=broad-exception-caught

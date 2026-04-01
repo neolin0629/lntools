@@ -1,3 +1,5 @@
+"""Command-line interface utilities for lntools."""
+
 from __future__ import annotations
 
 import argparse
@@ -6,6 +8,7 @@ from typing import Any
 
 class CLIError(Exception):
     """Custom exception for CLI-related errors."""
+
     def __init__(self, message: str | None = None, error_code: int | None = None):
         self.message = message or "An error occurred in CLI"
         self.error_code = error_code
@@ -44,7 +47,7 @@ class CLI:
         ``action
             store:        Stores the input value to the Namespace object
             store_const:  Stores a constant value when the option is specified
-            store_true:   Stores the True Boolean value when the option is specified and stores False otherwise
+            store_true:   Stores True when the option is specified, False otherwise
             store_false:  Stores False when the option is specified and stores True otherwise
             append:       Appends the current value to a list each time the option is provided
             append_const: Appends a constant value to a list each time the option is provided
@@ -89,7 +92,7 @@ class CLI:
             if allow_unknown:
                 args, unknown = self.parser.parse_known_args()
                 result = vars(args)
-                result['unknown'] = unknown
+                result["unknown"] = unknown
                 return result
             return vars(self.parser.parse_args())
         except (argparse.ArgumentError, SystemExit) as e:

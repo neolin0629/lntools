@@ -1,3 +1,11 @@
+"""Type aliases for lntools.
+
+This module provides common type aliases used throughout the lntools package
+for type hinting and documentation purposes.
+"""
+
+from __future__ import annotations
+
 from datetime import datetime
 from pathlib import Path
 from typing import Any, TypeAlias
@@ -33,3 +41,12 @@ DatetimeLike: TypeAlias = pd.Timestamp | datetime | int | float | str
 # ==========================================
 
 PathLike: TypeAlias = str | Path
+
+
+__all__ = [
+    "ArrayLike",
+    "DataFrameLike",
+    "DatetimeLike",
+    "PathLike",
+    "SeriesLike",
+]
